@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Avatar } from "../../components/Avatar";
 import { Button, IconButton } from "../../components/Button";
 import { PersonPicker } from "../../components/people/PersonPicker";
-import { countWords, listOf, relativeDay } from "../../lib/format";
+import { countWords, listOf, onDay } from "../../lib/format";
 import { listPeople } from "../../lib/library";
 import { askedBefore, isNew, nameKey, type Speaker } from "../../lib/people";
 import { useStore } from "../../lib/store";
@@ -16,22 +16,19 @@ interface WhoStepProps {
   onContinue: () => void;
   onSkip: () => void;
   onBack: () => void;
+  /** Sending the question: skipping makes a link anyone can answer. */
+  sending?: boolean;
 }
 
 type Mode = "find" | "name" | "chosen";
 
-/** "today", "yesterday", "on Sep 27" (never split across lines). */
-function when(iso: string): string {
-  const day = relativeDay(iso);
-  return day === "Today" || day === "Yesterday" ? day.toLowerCase() : `on ${day.replace(" ", "\u00a0")}`;
-}
 
 /**
  * Who are you asking? Find someone you've asked before as you type, or name
  * someone new. Choosing someone you know brings back, quietly, what you've
  * asked them before. Never a profile, never a form.
  */
-export function WhoStep({ question, speakers, onChange, onContinue, onSkip, onBack }: WhoStepProps) {
+export function WhoStep({ question, speakers, onChange, onContinue, onSkip, onBack, sending = false }: WhoStepProps) {
   const { captures, people } = useStore();
   const everyone = useMemo(() => listPeople(captures, people), [captures, people]);
   const current = speakers[0];
@@ -154,7 +151,7 @@ export function WhoStep({ question, speakers, onChange, onContinue, onSkip, onBa
             {earlier && (
               <div className={styles.similar}>
                 <p>
-                  You asked {chosen.name} something similar {when(earlier.recordedAt)}.
+                  You asked {chosen.name} something similar {onDay(earlier.recordedAt)}.
                 </p>
                 <p className={`serif ${styles.similarQuestion}`}>“{earlier.question}”</p>
                 {showPrevious && (
@@ -180,7 +177,7 @@ export function WhoStep({ question, speakers, onChange, onContinue, onSkip, onBa
       <div className={flow.footer}>
         {mode === "find" && (
           <Button block variant="text" size="md" onClick={onSkip}>
-            Skip for now
+            {sending ? "Skip · make a link anyone can answer" : "Skip for now"}
           </Button>
         )}
         {mode === "name" && (

@@ -1,5 +1,5 @@
 import { personIdFor } from "./library";
-import type { Capture } from "./types";
+import type { Capture, Outgoing } from "./types";
 
 /**
  * Sample conversations.
@@ -43,7 +43,13 @@ export interface SampleConversation {
     clarify?: { index: number; transcript: string; thing: SampleThing };
   };
   /** When present, this conversation appears in the library as a saved 3 Things. */
-  seed?: { daysAgo: number; time: string; keptClose?: boolean };
+  seed?: {
+    daysAgo: number;
+    time: string;
+    keptClose?: boolean;
+    /** Answered from a link: sent this many days before, and not opened yet. */
+    sentDaysBefore?: number;
+  };
 }
 
 export const sampleConversations: SampleConversation[] = [
@@ -295,6 +301,35 @@ export const sampleConversations: SampleConversation[] = [
         headline: "Get your lobster roll from a shack",
         detail: "Not a restaurant. The roadside ones with a line of locals are always better.",
         quote: "The ones on the side of the road with a line of locals are always better",
+      },
+    ],
+  },
+  {
+    // Answered from a link on Maya's own phone, reviewed by Maya, and not opened yet.
+    key: "maya-sane",
+    person: "Maya",
+    question: "What are three habits that keep you sane as a founder?",
+    topic: "Work",
+    keywords: ["sane", "habits"],
+    durationSec: 52,
+    seed: { daysAgo: 0, time: "08:05", sentDaysBefore: 2 },
+    transcript:
+      "Sane as a founder, ha. Okay. One, I don't look at Slack before breakfast. The whole day gets hijacked if I do. Two, I run three mornings a week, no matter what's on fire, because that's where I actually think. And three, I keep a list of things that went well each week. When everything feels like it's failing, that list is proof it isn't.",
+    things: [
+      {
+        headline: "No Slack before breakfast",
+        detail: "The whole day gets hijacked otherwise.",
+        quote: "I don't look at Slack before breakfast. The whole day gets hijacked if I do",
+      },
+      {
+        headline: "Run three mornings a week",
+        detail: "No matter what's on fire, because that's where the actual thinking happens.",
+        quote: "I run three mornings a week, no matter what's on fire, because that's where I actually think",
+      },
+      {
+        headline: "Keep a list of what went well each week",
+        detail: "When everything feels like it's failing, that list is proof it isn't.",
+        quote: "When everything feels like it's failing, that list is proof it isn't",
       },
     ],
   },
@@ -753,6 +788,35 @@ export const sampleConversations: SampleConversation[] = [
       },
     ],
   },
+  {
+    // Preview: what someone might say when you send "places in Chicago" to them.
+    key: "chicago",
+    person: "",
+    question: "What are three places I shouldn't miss in Chicago?",
+    topic: "Travel",
+    place: "Chicago",
+    keywords: ["chicago", "places", "miss", "shouldn't", "shouldn’t"],
+    durationSec: 71,
+    transcript:
+      "Chicago! Okay, first, the architecture boat tour. I know it sounds touristy, but you see the whole city from the river and the guides are great. Go at sunset if you can. Second, the Art Institute, but don't try to see all of it. Pick one wing and actually look. And then, oh, get out of downtown. Take the train up to Andersonville or Logan Square for a neighborhood dinner. That's where people actually live. Actually, if you only have a day, skip the Bean. It's fine, but everyone does the Bean.",
+    things: [
+      {
+        headline: "The architecture boat tour",
+        detail: "It sounds touristy, but you see the whole city from the river. Go at sunset if you can.",
+        quote: "the architecture boat tour. I know it sounds touristy, but you see the whole city from the river",
+      },
+      {
+        headline: "The Art Institute, one wing at a time",
+        detail: "Don't try to see all of it. Pick one wing and actually look.",
+        quote: "the Art Institute, but don't try to see all of it. Pick one wing and actually look",
+      },
+      {
+        headline: "Dinner in Andersonville or Logan Square",
+        detail: "Take the train out of downtown to where people actually live.",
+        quote: "Take the train up to Andersonville or Logan Square for a neighborhood dinner. That's where people actually live",
+      },
+    ],
+  },
 ];
 
 function atDaysAgo(daysAgo: number, time: string, now = new Date()): string {
@@ -781,7 +845,41 @@ export function seedCaptures(now = new Date()): Capture[] {
       personIds: c.person ? [personIdFor(c.person)] : [],
       ...(c.place ? { place: c.place } : {}),
       ...(c.seed!.keptClose ? { keptClose: true } : {}),
+      ...(c.seed!.sentDaysBefore !== undefined
+        ? {
+            remote: {
+              sentAt: atDaysAgo(c.seed!.daysAgo + c.seed!.sentDaysBefore, "19:30", now),
+              answeredAt: atDaysAgo(c.seed!.daysAgo, c.seed!.time, now),
+            },
+            unseen: true,
+          }
+        : {}),
     }));
+}
+
+/**
+ * Questions already sent, still waiting: one opened, one not yet. They live
+ * in this browser's relay, so a preview can answer them too.
+ */
+export function sampleOutgoing(now = new Date()): Outgoing[] {
+  const ask = (key: string, person: string, question: string, daysAgo: number, state: Outgoing["state"]): Outgoing => ({
+    id: `sample-ask-${key}`,
+    ownerKey: "sample",
+    via: "local",
+    question,
+    speakers: [{ id: personIdFor(person) }],
+    person,
+    group: `sample-ask-${key}`,
+    sentAt: atDaysAgo(daysAgo, "18:10", now),
+    state,
+    answers: [],
+    wantsAudio: false,
+    sample: true,
+  });
+  return [
+    ask("jason", "Jason", "What are three things you'd tell someone starting their first job?", 1, "opened"),
+    ask("mom", "Mom", "What are three recipes every kid should learn?", 3, "sent"),
+  ];
 }
 
 /**

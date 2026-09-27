@@ -4,13 +4,14 @@ import { AudioPlayer } from "../components/AudioPlayer";
 import { Avatar } from "../components/Avatar";
 import { Button, IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
+import { Icon } from "../components/Icon";
+import { ShareSheet } from "../components/ShareSheet";
 import { Sheet } from "../components/Sheet";
 import { ThingsEditorial } from "../components/ThingsEditorial";
 import { WhoSheet } from "../components/people/WhoSheet";
 import { loadRecording } from "../lib/audio/audioStore";
-import { calendarDate, duration, sourceLine } from "../lib/format";
+import { calendarDate, duration, onDay, sourceLine } from "../lib/format";
 import { topicKey } from "../lib/library";
-import { shareCapture, type ShareResult } from "../lib/share";
 import { useStore } from "../lib/store";
 import { useBack } from "../lib/useBack";
 import { EditStep } from "./capture/EditStep";
@@ -26,7 +27,8 @@ export function DetailScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const back = useBack("/library");
-  const { getCapture, getPerson, updateCapture, setSpeakers, deleteCapture, deleteAudio, toggleKeepClose } = useStore();
+  const { getCapture, getPerson, updateCapture, setSpeakers, deleteCapture, deleteAudio, toggleKeepClose, markSeen } =
+    useStore();
   const capture = getCapture(id);
   // Arriving from a search result: bring that one thing forward.
   const focus = (location.state as { focus?: string } | null)?.focus;
@@ -36,7 +38,13 @@ export function DetailScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmAudio, setConfirmAudio] = useState(false);
   const [naming, setNaming] = useState(false);
-  const [shared, setShared] = useState<ShareResult | null>(null);
+  const [sharing, setSharing] = useState(false);
+  // Opening an answer that just arrived: say so this once, then it's simply part of the Library.
+  const [arrived] = useState(() => Boolean(capture?.unseen));
+  const unseen = capture?.unseen ?? false;
+  useEffect(() => {
+    if (unseen) markSeen(id);
+  }, [unseen, id, markSeen]);
 
   const hasAudio = capture?.hasAudio ?? false;
   useEffect(() => {
@@ -55,11 +63,6 @@ export function DetailScreen() {
     return () => window.clearTimeout(timeout);
   }, [focus]);
 
-  useEffect(() => {
-    if (!shared) return;
-    const timeout = window.setTimeout(() => setShared(null), 2600);
-    return () => window.clearTimeout(timeout);
-  }, [shared]);
 
   if (!capture) {
     return (
@@ -85,7 +88,6 @@ export function DetailScreen() {
       <div className={styles.topbar}>
         <IconButton icon="back" label="Back" onClick={back} />
         <div className={styles.actions}>
-          {shared === "copied" && <span className={styles.copied}>Copied</span>}
           <IconButton
             icon={kept ? "bookmarked" : "bookmark"}
             label={kept ? "Kept close" : "Keep close"}
@@ -93,12 +95,21 @@ export function DetailScreen() {
             className={kept ? styles.keptOn : undefined}
             onClick={() => toggleKeepClose(capture.id)}
           />
-          <IconButton icon="share" label="Share" onClick={async () => setShared(await shareCapture(capture))} />
+          <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />
           <Button variant="text" size="sm" icon="pencil" onClick={() => setEditing(true)}>
             Edit
           </Button>
         </div>
       </div>
+
+      {arrived && (
+        <p className={styles.arrived}>
+          <Icon name="check" size={16} strokeWidth={2.2} />
+          <span>
+            {person || "They"} answered your question. It’s saved in your Library.
+          </span>
+        </p>
+      )}
 
       <header className={styles.header}>
         <div className={styles.person}>
@@ -174,10 +185,17 @@ export function DetailScreen() {
             </span>
           </p>
         )}
-        {(capture.edited || capture.origin === "manual") && (
+        {capture.remote ? (
           <p className={styles.provenance}>
-            {capture.origin === "manual" ? "Written down by you." : "Edited by you after the conversation."}
+            Answered from a link {onDay(capture.remote.answeredAt)}, {person ? `on ${person}’s own phone` : "on their own phone"}.{" "}
+            {person || "They"} reviewed these before sending{capture.edited ? ", and you’ve edited them since." : "."}
           </p>
+        ) : (
+          (capture.edited || capture.origin === "manual") && (
+            <p className={styles.provenance}>
+              {capture.origin === "manual" ? "Written down by you." : "Edited by you after the conversation."}
+            </p>
+          )
         )}
       </div>
 
@@ -219,6 +237,8 @@ export function DetailScreen() {
           setNaming(false);
         }}
       />
+
+      <ShareSheet open={sharing} capture={capture} onClose={() => setSharing(false)} />
 
       <Sheet
         open={confirmAudio}

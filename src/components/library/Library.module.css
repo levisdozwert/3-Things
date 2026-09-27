@@ -215,3 +215,15 @@
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
+
+/* An answer that came back and hasn't been opened. */
+.fresh {
+  margin-left: auto;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ember-ink);
+}
+
+.fresh + .kept {
+  margin-left: 8px;
+}

@@ -90,3 +90,9 @@ export function countWords(n: number, one: string, many = `${one}s`): string {
   const words = ["no", "one", "two", "three"];
   return `${n < words.length ? words[n] : n} ${n === 1 ? one : many}`;
 }
+
+/** "today", "yesterday", "on Sep 27", for the middle of a sentence (never split across lines). */
+export function onDay(iso: string, now = new Date()): string {
+  const day = relativeDay(iso, now);
+  return day === "Today" || day === "Yesterday" ? day.toLowerCase() : `on ${day.replace(" ", " ")}`;
+}

@@ -2,9 +2,12 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Plugin } from "vite";
 import type { DistillRequest } from "../src/lib/distill/contract";
+import { RelayCore, memoryStorage, type RelayStorage } from "../src/lib/remote/core";
 import { distill, RefusedError, type DistillOptions } from "./distill";
 
 const MAX_BODY_BYTES = 256 * 1024;
+/** An answer may carry a recording, when the person answering allowed it. */
+const MAX_ANSWER_BYTES = 9 * 1024 * 1024;
 
 function send(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status;
@@ -12,12 +15,12 @@ function send(res: ServerResponse, status: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
+async function readJson(req: IncomingMessage, limit = MAX_BODY_BYTES): Promise<unknown> {
   let size = 0;
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > MAX_BODY_BYTES) throw new Error("Body too large");
+    if (size > limit) throw new Error("Body too large");
     chunks.push(chunk as Buffer);
   }
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -49,21 +52,63 @@ function isDistillRequest(value: unknown): value is DistillRequest {
   );
 }
 
+function isOwnerRequest(value: unknown): value is { ownerKey: string; answerIds?: string[] } {
+  const v = value as { ownerKey?: unknown; answerIds?: unknown };
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof v.ownerKey === "string" &&
+    (v.answerIds === undefined || (Array.isArray(v.answerIds) && v.answerIds.every((a) => typeof a === "string")))
+  );
+}
+
+function isStatusRequest(value: unknown): value is { items: { id: string; ownerKey: string }[] } {
+  const v = value as { items?: unknown };
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    Array.isArray(v.items) &&
+    v.items.length <= 200 &&
+    v.items.every((i) => typeof i?.id === "string" && typeof i?.ownerKey === "string")
+  );
+}
+
+export interface ApiOptions extends DistillOptions {
+  /** Where the relay keeps questions. In memory when omitted. */
+  relayStorage?: RelayStorage;
+}
+
 /**
- * GET  /api/health   → { ready } — whether live distilling is available.
- * POST /api/distill  → DistillResponse
+ * GET  /api/health                → { ready, relay } — live distilling; the question relay.
+ * POST /api/distill               → DistillResponse
+ *
+ * Asking someone who isn't with you (see src/lib/remote):
+ * POST /api/remote                → { id, ownerKey }         the asker creates a question
+ * GET  /api/remote/:id[?peek=1]   → PublicQuestion           the link opens (peek: the asker previewing)
+ * POST /api/remote/:id/answer     → { result }               the reviewed answer, and nothing else
+ * POST /api/remote/status         → QuestionStatus[]         the asker's app, with its keys
+ * POST /api/remote/:id/collect    → {}                       collected: the relay forgets the answers
+ * POST /api/remote/:id/delete     → {}                       the link says it's no longer available
  *
  * Framework-agnostic Node middleware. Mounted into Vite's dev and preview
  * servers below; the same handler can sit behind any Node host.
  */
-export function createApiHandler(options: DistillOptions) {
+export function createApiHandler(options: ApiOptions) {
   const ready = Boolean(options.apiKey);
+  const relay = new RelayCore(options.relayStorage ?? memoryStorage());
 
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    const url = req.url?.split("?")[0];
+    const [url, search = ""] = (req.url ?? "").split("?");
 
     if (url === "/api/health" && req.method === "GET") {
-      return send(res, 200, { ready });
+      return send(res, 200, { ready, relay: true });
+    }
+
+    if (url.startsWith("/api/remote")) {
+      // Private by nature: never cached, never indexed.
+      res.setHeader("cache-control", "no-store");
+      res.setHeader("x-robots-tag", "noindex, nofollow");
+      return handleRemote(relay, req, res, url, new URLSearchParams(search));
     }
 
     if (url === "/api/distill" && req.method === "POST") {
@@ -94,7 +139,49 @@ export function createApiHandler(options: DistillOptions) {
   };
 }
 
-export function threeThingsApi(options: DistillOptions): Plugin {
+async function handleRemote(relay: RelayCore, req: IncomingMessage, res: ServerResponse, url: string, params: URLSearchParams) {
+  const parts = url.split("/").filter(Boolean); // ["api", "remote", id?, action?]
+  const id = parts[2];
+  const action = parts[3];
+  let body: unknown;
+  if (req.method === "POST") {
+    try {
+      body = await readJson(req, action === "answer" ? MAX_ANSWER_BYTES : MAX_BODY_BYTES);
+    } catch {
+      return send(res, 400, { error: "invalid_body" });
+    }
+  }
+
+  if (!id && req.method === "POST") {
+    try {
+      return send(res, 201, relay.create(body as never));
+    } catch {
+      return send(res, 400, { error: "invalid_question" });
+    }
+  }
+  if (id === "status" && !action && req.method === "POST") {
+    if (!isStatusRequest(body)) return send(res, 400, { error: "invalid_request" });
+    return send(res, 200, relay.status(body.items));
+  }
+  if (id && !action && req.method === "GET") {
+    const view = relay.view(id, { peek: params.get("peek") === "1" });
+    return view ? send(res, 200, view) : send(res, 410, { error: "gone" });
+  }
+  if (id && action === "answer" && req.method === "POST") {
+    const result = relay.answer(id, body as never);
+    const status = { sent: 201, gone: 410, closed: 409, invalid: 400 }[result];
+    return send(res, status, { result });
+  }
+  if (id && (action === "collect" || action === "delete") && req.method === "POST") {
+    if (!isOwnerRequest(body)) return send(res, 400, { error: "invalid_request" });
+    if (action === "collect") relay.collect(id, body.ownerKey, body.answerIds ?? []);
+    else relay.remove(id, body.ownerKey);
+    return send(res, 200, {});
+  }
+  return send(res, 404, { error: "not_found" });
+}
+
+export function threeThingsApi(options: ApiOptions): Plugin {
   const handler = createApiHandler(options);
   return {
     name: "three-things-api",

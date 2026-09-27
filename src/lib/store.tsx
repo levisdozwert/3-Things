@@ -13,8 +13,11 @@ import {
   withoutOrphans,
   type Speaker,
 } from "./people";
-import { sampleNotes, seedCaptures } from "./samples";
-import type { Capture, PersonRecord, Profile, Settings } from "./types";
+import type { QuestionStatus } from "./remote/contract";
+import { captureIdFor, receive } from "./remote/receive";
+import { localCore } from "./remote/relay";
+import { sampleNotes, sampleOutgoing, seedCaptures } from "./samples";
+import type { Capture, Outgoing, PersonRecord, Profile, Settings } from "./types";
 
 /** The year-of-conversations preview (loaded only when someone turns it on). */
 const isYearConversation = (c: Capture) => c.id.startsWith("year-");
@@ -30,6 +33,8 @@ export interface Persisted {
   seeded?: string[];
   /** Pairs of people the user said are different people, so we don't ask again. */
   separate?: string[];
+  /** Questions sent to people to answer on their own phones. */
+  outgoing?: Outgoing[];
 }
 
 const defaultProfile: Profile = { firstName: "", lastName: "", preferredName: "" };
@@ -42,7 +47,37 @@ export const defaultSettings: Settings = {
   fullLibrary: false,
   calmMotion: false,
   largerText: false,
+  notifyAnswers: true,
 };
+
+/** How the asker signs a question they send. */
+export function askerName(settings: Settings): string {
+  return settings.profile.preferredName.trim() || settings.profile.firstName.trim();
+}
+
+/**
+ * The sample questions still waiting for answers live in this browser's
+ * relay, so a preview can open and answer them like anyone would.
+ */
+function seedWaiting(outgoing: Outgoing[], signedAs: string) {
+  try {
+    for (const o of outgoing) {
+      if (!o.sample || o.state === "answered") continue;
+      localCore.seed({
+        id: o.id,
+        ownerKey: o.ownerKey,
+        createdAt: o.sentAt,
+        question: o.question,
+        askerName: signedAs,
+        forName: o.person,
+        wantsAudio: o.wantsAudio,
+        opened: o.state === "opened",
+      });
+    }
+  } catch {
+    /* storage unavailable: the samples just can't be answered */
+  }
+}
 
 /** Every conversation points at its people, and reads as their current names. */
 function linked(state: Persisted): Persisted {
@@ -64,15 +99,27 @@ export function refreshSamples(state: Persisted): Persisted {
   const captures = state.captures.map((c) => {
     const seed = latest.get(c.id);
     if (c.origin !== "sample" || !seed || c.edited) return c;
-    return { ...seed, recordedAt: c.recordedAt, keptClose: c.keptClose, personIds: c.personIds ?? seed.personIds };
+    return {
+      ...seed,
+      recordedAt: c.recordedAt,
+      keptClose: c.keptClose,
+      unseen: c.unseen,
+      personIds: c.personIds ?? seed.personIds,
+    };
   });
   const added = state.settings.showSamples ? seeds.filter((c) => !offered.has(c.id)) : [];
+
+  // Sample questions waiting for answers, offered once like the rest.
+  const waiting = sampleOutgoing();
+  const outgoing = state.outgoing ?? [];
+  const newWaiting = state.settings.showSamples ? waiting.filter((o) => !offered.has(o.id)) : [];
 
   return linked({
     ...state,
     people: state.people ?? [],
     captures: [...captures, ...added],
-    seeded: seeds.map((c) => c.id),
+    outgoing: [...outgoing, ...newWaiting],
+    seeded: [...seeds.map((c) => c.id), ...waiting.map((o) => o.id)],
   });
 }
 
@@ -97,13 +144,21 @@ function load(): Persisted {
         settings: migrateSettings(parsed.settings),
         seeded: parsed.seeded,
         separate: parsed.separate,
+        outgoing: parsed.outgoing,
       });
     }
   } catch {
     /* fall through to a fresh start */
   }
   const captures = seedCaptures();
-  return linked({ captures, people: [], settings: defaultSettings, seeded: captures.map((c) => c.id) });
+  const outgoing = sampleOutgoing();
+  return linked({
+    captures,
+    people: [],
+    settings: defaultSettings,
+    outgoing,
+    seeded: [...captures.map((c) => c.id), ...outgoing.map((o) => o.id)],
+  });
 }
 
 function byNewest(a: Capture, b: Capture) {
@@ -159,6 +214,17 @@ interface Store {
   updateProfile(patch: Partial<Profile>): void;
   /** The account, the Library, every person and recording on this device. */
   deleteEverything(): void;
+  /** Questions sent to people, newest first, respecting "show samples". */
+  outgoing: Outgoing[];
+  getOutgoing(id: string): Outgoing | undefined;
+  addOutgoing(question: Outgoing): void;
+  updateOutgoing(id: string, patch: Partial<Outgoing>): void;
+  /** Forgets a sent question here. (Deleting it on the relay is the caller's job.) */
+  removeOutgoing(id: string): void;
+  /** What the relay says about a sent question: its state, and any answers, as conversations. */
+  receiveStatus(status: QuestionStatus, withAudio?: string[]): void;
+  /** Opened an answer that arrived. */
+  markSeen(captureId: string): void;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -173,6 +239,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* storage full or unavailable — the session still works */
     }
   }, [state]);
+
+  const waitingSamples = state.outgoing;
+  const signedAs = askerName(state.settings);
+  useEffect(() => {
+    if (waitingSamples) seedWaiting(waitingSamples, signedAs);
+  }, [waitingSamples, signedAs]);
 
   // Appearance applies to the whole document.
   const { calmMotion, largerText } = state.settings;
@@ -247,7 +319,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const mergePeople = useCallback((fromId: string, intoId: string, name?: string) => {
     setState((s) => {
       const merged = merge(s.captures, s.people, fromId, intoId, name);
-      return { ...s, ...merged, separate: (s.separate ?? []).filter((k) => k !== pairKey(fromId, intoId)) };
+      // Questions waiting for the merged person now wait for the one person.
+      const outgoing = (s.outgoing ?? []).map((o) => ({
+        ...o,
+        speakers: o.speakers.map((sp) => ("id" in sp && sp.id === fromId ? { id: intoId } : sp)),
+      }));
+      return { ...s, ...merged, outgoing, separate: (s.separate ?? []).filter((k) => k !== pairKey(fromId, intoId)) };
     });
   }, []);
 
@@ -309,9 +386,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       captures: [],
       people: [],
       separate: [],
+      outgoing: [],
       seeded: s.seeded,
       settings: { ...defaultSettings, showSamples: false },
     }));
+  }, []);
+
+  const addOutgoing = useCallback((question: Outgoing) => {
+    setState((s) => ({ ...s, outgoing: [question, ...(s.outgoing ?? []).filter((o) => o.id !== question.id)] }));
+  }, []);
+
+  const updateOutgoing = useCallback((id: string, patch: Partial<Outgoing>) => {
+    setState((s) => ({ ...s, outgoing: (s.outgoing ?? []).map((o) => (o.id === id ? { ...o, ...patch } : o)) }));
+  }, []);
+
+  const removeOutgoing = useCallback((id: string) => {
+    setState((s) => ({ ...s, outgoing: (s.outgoing ?? []).filter((o) => o.id !== id) }));
+  }, []);
+
+  const receiveStatus = useCallback((status: QuestionStatus, withAudio: string[] = []) => {
+    setState((s) => {
+      const question = (s.outgoing ?? []).find((o) => o.id === status.id);
+      if (!question || status.state === "gone") return s;
+      const have = new Set(s.captures.map((c) => c.id));
+      const fresh = status.answers.filter((a) => !have.has(captureIdFor(a)));
+      if (fresh.length === 0 && question.state === status.state) return s;
+      const received = receive(question, fresh, s.people);
+      const captures = received.captures.map((c) => (withAudio.includes(c.id) ? { ...c, hasAudio: true } : c));
+      const outgoing = (s.outgoing ?? []).map((o) =>
+        o.id === question.id
+          ? { ...o, state: status.state as Outgoing["state"], speakers: received.speakers, answers: [...o.answers, ...captures.map((c) => c.id)] }
+          : o,
+      );
+      return { ...s, captures: [...captures, ...s.captures], people: received.people, outgoing };
+    });
+  }, []);
+
+  const markSeen = useCallback((captureId: string) => {
+    setState((s) =>
+      s.captures.some((c) => c.id === captureId && c.unseen)
+        ? { ...s, captures: s.captures.map((c) => (c.id === captureId ? { ...c, unseen: undefined } : c)) }
+        : s,
+    );
   }, []);
 
   const value = useMemo<Store>(() => {
@@ -319,7 +435,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       .filter((c) => state.settings.showSamples || c.origin !== "sample")
       .sort(byNewest);
     const present = new Set(visible.flatMap(idsOf));
+    const outgoing = (state.outgoing ?? [])
+      .filter((o) => state.settings.showSamples || !o.sample)
+      .sort((a, b) => b.sentAt.localeCompare(a.sentAt));
     return {
+      outgoing,
+      getOutgoing: (id) => state.outgoing?.find((o) => o.id === id),
+      addOutgoing,
+      updateOutgoing,
+      removeOutgoing,
+      receiveStatus,
+      markSeen,
       captures: visible,
       people: state.people.filter((p) => present.has(p.id)),
       settings: state.settings,
@@ -357,6 +483,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateSettings,
     updateProfile,
     deleteEverything,
+    addOutgoing,
+    updateOutgoing,
+    removeOutgoing,
+    receiveStatus,
+    markSeen,
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

@@ -17,6 +17,7 @@ import {
   type SearchResults,
 } from "../lib/library";
 import { likelyDuplicates } from "../lib/people";
+import { isWaiting } from "../lib/remote/describe";
 import { starterQuestions } from "../lib/samples";
 import { useStore } from "../lib/store";
 import type { Capture } from "../lib/types";
@@ -116,7 +117,8 @@ function Recent({ captures }: { captures: Capture[] }) {
  * remember it. By when, by who, and by what it was about.
  */
 export function LibraryScreen() {
-  const { captures, people: records, separate, mergePeople, keepSeparate } = useStore();
+  const { captures, people: records, separate, mergePeople, keepSeparate, outgoing } = useStore();
+  const waiting = outgoing.filter(isWaiting).length;
   const [merging, setMerging] = useState<[Person, Person] | null>(null);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -344,7 +346,20 @@ export function LibraryScreen() {
           )}
         </>
       ) : (
-        <Recent captures={keptOnly ? kept : captures} />
+        <>
+          {outgoing.length > 0 && !keptOnly && (
+            <Link to="/sent" viewTransition className={styles.sentLink}>
+              <Icon name="share" size={16} strokeWidth={1.8} />
+              <span>
+                {waiting > 0
+                  ? `${waiting} ${waiting === 1 ? "question" : "questions"} waiting for answers`
+                  : "Questions you’ve sent"}
+              </span>
+              <Icon name="forward" size={16} />
+            </Link>
+          )}
+          <Recent captures={keptOnly ? kept : captures} />
+        </>
       )}
 
       {merging && (

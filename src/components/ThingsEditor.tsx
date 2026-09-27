@@ -51,13 +51,15 @@ interface ThingsEditorProps {
   onChange: (draft: Draft) => void;
   /** Bring this thing into view with its headline ready to edit. */
   focusIndex?: number | null;
+  /** Who, topic and place. Off for someone editing their own answer. */
+  meta?: boolean;
 }
 
 /**
  * Editing is for the person who asked: fix a word, reorder, remove something
  * that wasn't quite theirs. The speaker's original words stay attached.
  */
-export function ThingsEditor({ value, onChange, focusIndex = null }: ThingsEditorProps) {
+export function ThingsEditor({ value, onChange, focusIndex = null, meta = true }: ThingsEditorProps) {
   const { things } = value;
   const listRef = useRef<HTMLOListElement>(null);
   const [choosing, setChoosing] = useState(false);
@@ -86,48 +88,50 @@ export function ThingsEditor({ value, onChange, focusIndex = null }: ThingsEdito
 
   return (
     <div className={styles.editor}>
-      <div className={styles.meta}>
-        <div className={styles.metaRow}>
-          <span className={styles.metaLabel}>From</span>
-          <button type="button" className={styles.metaPerson} onClick={() => setChoosing(true)}>
-            <span className={value.person ? undefined : styles.metaEmpty}>
-              {value.person || sourceLine("").replace(/^From /, "")}
-            </span>
-            <span className={styles.metaChange}>{value.person ? "Change" : "Add a name"}</span>
-          </button>
-        </div>
-        <div className={styles.metaRow}>
-          <span className={styles.metaLabel} id="topic-label">
-            Topic
-          </span>
-          <div className={styles.topics} role="radiogroup" aria-labelledby="topic-label">
-            {Array.from(new Set([value.topic, ...TOPICS].filter(Boolean))).map((topic) => (
-              <button
-                key={topic}
-                type="button"
-                role="radio"
-                aria-checked={value.topic === topic}
-                className={`${styles.topic} ${value.topic === topic ? styles.topicOn : ""}`}
-                onClick={() => onChange({ ...value, topic })}
-              >
-                {topic}
-              </button>
-            ))}
+      {meta && (
+        <div className={styles.meta}>
+          <div className={styles.metaRow}>
+            <span className={styles.metaLabel}>From</span>
+            <button type="button" className={styles.metaPerson} onClick={() => setChoosing(true)}>
+              <span className={value.person ? undefined : styles.metaEmpty}>
+                {value.person || sourceLine("").replace(/^From /, "")}
+              </span>
+              <span className={styles.metaChange}>{value.person ? "Change" : "Add a name"}</span>
+            </button>
           </div>
+          <div className={styles.metaRow}>
+            <span className={styles.metaLabel} id="topic-label">
+              Topic
+            </span>
+            <div className={styles.topics} role="radiogroup" aria-labelledby="topic-label">
+              {Array.from(new Set([value.topic, ...TOPICS].filter(Boolean))).map((topic) => (
+                <button
+                  key={topic}
+                  type="button"
+                  role="radio"
+                  aria-checked={value.topic === topic}
+                  className={`${styles.topic} ${value.topic === topic ? styles.topicOn : ""}`}
+                  onClick={() => onChange({ ...value, topic })}
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className={styles.metaRow}>
+            <span className={styles.metaLabel}>Where</span>
+            <input
+              className={styles.metaInput}
+              value={value.place ?? ""}
+              onChange={(e) => onChange({ ...value, place: e.target.value })}
+              placeholder="A place, if it’s about one"
+              autoComplete="off"
+              autoCapitalize="words"
+              enterKeyHint="done"
+            />
+          </label>
         </div>
-        <label className={styles.metaRow}>
-          <span className={styles.metaLabel}>Where</span>
-          <input
-            className={styles.metaInput}
-            value={value.place ?? ""}
-            onChange={(e) => onChange({ ...value, place: e.target.value })}
-            placeholder="A place, if it’s about one"
-            autoComplete="off"
-            autoCapitalize="words"
-            enterKeyHint="done"
-          />
-        </label>
-      </div>
+      )}
 
       <WhoSheet
         open={choosing}

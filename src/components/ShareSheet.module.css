@@ -1,0 +1,29 @@
+.preview {
+  margin: 4px 0 14px;
+}
+
+.note {
+  font-size: var(--text-meta);
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+.status {
+  margin-top: 8px;
+  font-size: var(--text-small);
+  color: var(--ink);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+}
+
+.more button {
+  min-height: 44px;
+  font-size: var(--text-small);
+  font-weight: 560;
+  color: var(--ink-2);
+}

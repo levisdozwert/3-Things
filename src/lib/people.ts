@@ -1,5 +1,5 @@
 import { personIdFor, queryTerms, speakersOf } from "./library";
-import type { Capture, PersonRecord } from "./types";
+import type { Capture, PersonRecord, Speaker } from "./types";
 
 /**
  * People are lightweight and private: a name the user chose, maybe a note or a
@@ -14,8 +14,7 @@ export function nameKey(name: string): string {
 
 export { personIdFor };
 
-/** Who answered, as the flow knows it: someone already in the Library, or a new name. */
-export type Speaker = { id: string } | { name: string };
+export type { Speaker };
 
 export function isNew(speaker: Speaker): speaker is { name: string } {
   return "name" in speaker;
@@ -191,8 +190,21 @@ export function likelyDuplicates<P extends { id: string; name: string }>(
 
 // ── Asking again ─────────────────────────────────────────────
 
-/** How alike two questions are, by the words that carry their meaning (0 to 1). */
+/** Names of places, people and things: capitalized, and not just starting the sentence. */
+function properNouns(question: string): string[] {
+  return (question.match(/[\p{L}'’]+/gu) ?? [])
+    .slice(1)
+    .filter((w) => /^\p{Lu}/u.test(w) && w !== "I")
+    .map((w) => w.toLowerCase())
+    .sort();
+}
+
+/**
+ * How alike two questions are, by the words that carry their meaning (0 to 1).
+ * Asking about Chicago isn't asking about Boston, however alike the rest is.
+ */
 export function questionSimilarity(a: string, b: string): number {
+  if (properNouns(a).join(" ") !== properNouns(b).join(" ")) return 0;
   const x = new Set(queryTerms(a));
   const y = new Set(queryTerms(b));
   if (x.size === 0 || y.size === 0) return 0;

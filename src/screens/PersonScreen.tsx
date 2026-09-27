@@ -9,6 +9,7 @@ import { MergeSheet } from "../components/people/MergeSheet";
 import { PersonEditSheet } from "../components/people/PersonEditSheet";
 import { count } from "../lib/format";
 import { findPerson, speakersOf } from "../lib/library";
+import { isWaiting, sentWhen } from "../lib/remote/describe";
 import { useStore } from "../lib/store";
 import { useBack } from "../lib/useBack";
 import styles from "./Collection.module.css";
@@ -20,7 +21,7 @@ import styles from "./Collection.module.css";
  */
 export function PersonScreen() {
   const { key = "" } = useParams();
-  const { captures, people, updatePerson, mergePeople, deletePerson } = useStore();
+  const { captures, people, outgoing, updatePerson, mergePeople, deletePerson } = useStore();
   const navigate = useNavigate();
   const back = useBack("/library?view=people");
   const id = decodeURIComponent(key);
@@ -43,6 +44,7 @@ export function PersonScreen() {
   }
 
   const n = person.things;
+  const waitingFor = outgoing.filter((o) => isWaiting(o) && o.speakers.some((sp) => "id" in sp && sp.id === person.id));
   const context = [...person.topics, ...person.places].slice(0, 5).join(" · ");
   const alone = person.conversations.length - person.together;
   const others = (c: (typeof person.conversations)[number]) =>
@@ -77,6 +79,22 @@ export function PersonScreen() {
         </p>
         {context && <p className={styles.context}>{context}</p>}
       </header>
+
+      {waitingFor.length > 0 && (
+        <section className={styles.waiting}>
+          <h2 className={styles.label}>Waiting for {person.name}</h2>
+          <ul>
+            {waitingFor.map((o) => (
+              <li key={o.id}>
+                <Link to={`/sent/${encodeURIComponent(o.id)}`} viewTransition className={styles.waitingRow}>
+                  <span className="serif">{o.question}</span>
+                  <span className={styles.context}>{sentWhen(o.sentAt)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className={styles.label}>

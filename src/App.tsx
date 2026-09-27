@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ComponentType } from "react";
 import {
   createBrowserRouter,
   createHashRouter,
@@ -9,17 +9,19 @@ import {
   ScrollRestoration,
   type RouteObject,
 } from "react-router-dom";
+import { ArrivalNotice } from "./components/ArrivalNotice";
 import { BottomNav } from "./components/BottomNav";
 import { detectMode } from "./lib/distill/client";
 import { StoreProvider } from "./lib/store";
-import { CaptureFlow } from "./screens/capture/CaptureFlow";
-import { DetailScreen } from "./screens/DetailScreen";
 import { HomeScreen } from "./screens/HomeScreen";
-import { LibraryScreen } from "./screens/LibraryScreen";
-import { PersonScreen } from "./screens/PersonScreen";
-import { ProfileScreen } from "./screens/ProfileScreen";
-import { TopicScreen } from "./screens/TopicScreen";
-import { YouScreen } from "./screens/YouScreen";
+
+/**
+ * Each screen arrives when it's first needed, so a first visit (and someone
+ * opening a question's link) loads only what it shows.
+ */
+const screen =
+  <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K): RouteObject["lazy"] =>
+  async () => ({ Component: (await load())[name] });
 
 function Root() {
   useEffect(() => {
@@ -30,6 +32,7 @@ function Root() {
       {/* Pages opened fresh all share the "default" key; tell them apart by address. */}
       <ScrollRestoration getKey={(location) => (location.key === "default" ? location.pathname + location.search : location.key)} />
       <Outlet />
+      <ArrivalNotice />
     </>
   );
 }
@@ -51,15 +54,19 @@ const routes: RouteObject[] = [
         element: <TabsLayout />,
         children: [
           { index: true, element: <HomeScreen /> },
-          { path: "library", element: <LibraryScreen /> },
-          { path: "library/people/:key", element: <PersonScreen /> },
-          { path: "library/topics/:key", element: <TopicScreen /> },
-          { path: "library/:id", element: <DetailScreen /> },
-          { path: "you", element: <YouScreen /> },
-          { path: "you/profile", element: <ProfileScreen /> },
+          { path: "library", lazy: screen(() => import("./screens/LibraryScreen"), "LibraryScreen") },
+          { path: "library/people/:key", lazy: screen(() => import("./screens/PersonScreen"), "PersonScreen") },
+          { path: "library/topics/:key", lazy: screen(() => import("./screens/TopicScreen"), "TopicScreen") },
+          { path: "library/:id", lazy: screen(() => import("./screens/DetailScreen"), "DetailScreen") },
+          { path: "you", lazy: screen(() => import("./screens/YouScreen"), "YouScreen") },
+          { path: "you/profile", lazy: screen(() => import("./screens/ProfileScreen"), "ProfileScreen") },
+          { path: "sent", lazy: screen(() => import("./screens/SentScreen"), "SentScreen") },
+          { path: "sent/:id", lazy: screen(() => import("./screens/QuestionScreen"), "QuestionScreen") },
         ],
       },
-      { path: "ask", element: <CaptureFlow /> },
+      { path: "ask", lazy: screen(() => import("./screens/capture/CaptureFlow"), "CaptureFlow") },
+      // Someone asked you for 3: a link opened in any browser, app or not.
+      { path: "a/:id", lazy: screen(() => import("./screens/answer/AnswerFlow"), "AnswerFlow") },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },
@@ -70,7 +77,8 @@ const routes: RouteObject[] = [
 const routerMode = import.meta.env.VITE_ROUTER;
 const router =
   routerMode === "memory"
-    ? createMemoryRouter(routes)
+    ? // Embedded previews can't use the address, but a link's #/a/… still opens its question.
+      createMemoryRouter(routes, { initialEntries: [window.location.hash.startsWith("#/") ? window.location.hash.slice(1) : "/"] })
     : routerMode === "hash"
       ? createHashRouter(routes)
       : createBrowserRouter(routes);

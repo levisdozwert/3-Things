@@ -12,9 +12,11 @@ interface EditStepProps {
   saveLabel?: string;
   onSave: (draft: Draft) => void;
   onCancel: () => void;
+  /** Someone editing their own answer: their words, not who or where. */
+  own?: boolean;
 }
 
-export function EditStep({ question, draft, focusIndex = null, saveLabel = "Save", onSave, onCancel }: EditStepProps) {
+export function EditStep({ question, draft, focusIndex = null, saveLabel = "Save", onSave, onCancel, own = false }: EditStepProps) {
   const [value, setValue] = useState<Draft>(draft);
   const usable = value.things.filter((t) => t.headline.trim());
 
@@ -31,9 +33,9 @@ export function EditStep({ question, draft, focusIndex = null, saveLabel = "Save
       <div className={`${flow.content} ${styles.content}`}>
         <header className={styles.header}>
           <h1 className={`${flow.question} ${flow.questionLG}`}>{question}</h1>
-          <p className={styles.hint}>Keep it true to what they said.</p>
+          <p className={styles.hint}>{own ? "Make it sound like you. Only what you send is shared." : "Keep it true to what they said."}</p>
         </header>
-        <ThingsEditor value={value} onChange={setValue} focusIndex={focusIndex} />
+        <ThingsEditor value={value} onChange={setValue} focusIndex={focusIndex} meta={!own} />
       </div>
 
       <div className={flow.footer}>

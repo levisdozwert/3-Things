@@ -9,13 +9,15 @@ There is always something to learn from another person. In 3 Things you ask some
 ## The core loop
 
 ```
-Ask → Listen → Understand → 3 Things → Save
+Ask → Listen → Understand → 3 Things → Save            (in person)
+Ask → Send → They speak → 3 Things returns to you       (sent to someone)
 ```
 
 | Step | Screen | What it does |
 | --- | --- | --- |
 | Ask | **Home** | One big *Ask for 3*. Type a question is the quiet alternative. Example questions sit underneath. |
 | | **Ask** | *What do you want to ask?* Nothing records until you choose. **Speak your question** is the main action; the screen shows only that it's listening, never your words as you say them. Afterwards the question appears once, with **Use this question** or **Edit**. **Type instead** gives a minimal, large-serif input with **Continue**. |
+| | **How** | *How do you want to ask?* **In person** (listen together now) or **Send it** (they answer by voice on their own phone). See *Asking someone who isn't with you* below. |
 | | **Who** | The question, settled. *Who are you asking?* Type a name and people you've asked before appear as you type (*Jason Patel · 5 conversations*), with **Create “Jason”** for someone new; or **Skip for now**. See *People you've learned from* below. |
 | | **Ready** | The question in quotes, *Ready when Jason is* (or *they are*), *Let them answer naturally…*, the one-line consent reminder, and the strongest button in the app: **Start listening**. Its three marks grow into the listening screen's three forms. |
 | Listen | **Listening** | Focus mode. *Listening to Jason*, the question, three vertical forms that respond to the voice, one line of copy, and Pause, Stop and a quiet `01:42` timer. No transcript. After six seconds untouched, the controls fade back. In silence, *Take your time.*, later *Still listening.*, and it never stops on its own. |
@@ -85,6 +87,36 @@ A personal page, not a social profile: a photo or initials, your name (*Edit pro
 
 Deleting is always available and never argued with: a single conversation (its page), its recording, a person, all recordings, or everything.
 
+## Asking someone who isn't with you
+
+Send someone a question; they answer by voice from a link, on their own phone, without installing anything; their reviewed 3 Things come back to your Library.
+
+**Sending (in the app).** After the question: *How do you want to ask?* → **Send it** → *Who are you asking?* (the same people picker; or **Skip · make a link anyone can answer**) → *Send this to Sarah*: the question, what Sarah will see (*“Levis asked you for 3”*), and **Share question**, which opens the phone's own share sheet (Messages, WhatsApp, email…) or copies the link. 3 Things never becomes a messenger. Then *Sent to Sarah*, with **See what Sarah will see** and **Ask someone else too**. If you haven't set a name, the Share screen asks for one first.
+
+**Answering (the link, `/a/…`).** A mobile web page that looks and feels like 3 Things: *Levis asked you for 3*, the question as the hero, *Just talk naturally. You don't need to organize your answer perfectly.*, and plain trust lines: *Your answer will be shared with Levis after you review it.* and *Your recording is used to create your 3 Things. It stays on this phone.* If the asker keeps original audio, there's also **Allow Levis to keep the original recording**, off unless they choose it. **Answer by voice** leads to the same listening screen (*Your answer*, the three forms, Pause, a labelled **Finish**), then *Finding your three things*, then their review: *Your 3 Things*, *Does this sound like you?*, **Send my 3**, **Edit** (headline, context, order; nothing else) and Listen back, with *Nothing is shared with Levis until you send it.* **Type instead** works throughout. Two things is fine to send; **Add one more** is there if they want it. A link for anyone asks *What should Levis call you?* only at the very end. Afterwards: *Sent to Levis. Thanks for sharing what you know.*, a small keepsake of what they sent, and a quiet *Want to keep your own 3 Things? Explore 3 Things*. No account, no signup wall. A deleted question says *This question is no longer available.*; one already answered says so. If the person has 3 Things already, the same link opens the same page.
+
+**Coming back.** While the app is open it checks quietly (on each screen change and every little while). An answer becomes an ordinary conversation in the Library, *From Sarah*, exactly as Sarah reviewed it, with *Answered from a link today, on Sarah's own phone. Sarah reviewed these before sending.* A quiet notice says *Sarah answered your question* (and a device notification if you turned that on in You). Home shows **New from your people** (*Sarah answered your question · See Sarah's 3*) and **Waiting for answers** (*Jason · Sent yesterday · Opened*). The Library's Recent view has one line, *2 questions waiting for answers*, leading to **Questions you've sent**. A person's page shows questions waiting for them.
+
+**A sent question's page.** Sent, Opened, Answered: no times, no read receipts. **Send a reminder** (only when you tap it; the words are gentle, and nothing ever nudges anyone automatically), **Copy link**, **See what Jason will see**, **Ask someone else too** (the same question to more people; each answer stays separate, side by side, never ranked or merged), and **Delete this question**.
+
+**Sharing a finished 3 Things.** The share button on any conversation makes a clean picture: the question, *3 Things from Sarah*, the three headlines and a quiet mark, never the recording or private notes. It reminds you these are Sarah's words before you share.
+
+**Privacy, by design.**
+- Nothing leaves the answerer's phone until they tap **Send my 3**, and what's sent is exactly the version they reviewed. No transcript, no draft.
+- Their recording stays on their phone unless the asker keeps recordings *and* they allowed it.
+- The relay (below) only gives answers to the asker's secret key, forgets an answer's content as soon as the asker's app has safely stored it, and marks every response `noindex`. Links don't expire.
+
+**How it's wired.** A small relay holds questions until answers are collected. With the dev or preview server it runs in the Node middleware and keeps a file at `.data/relay.json` (git-ignored). On a static host with no server (like the preview artifact), the same relay runs in the browser's storage, so asking and answering happen on one device, which is enough to try every step: send a question, tap **See what Sarah will see**, answer it, then come back to Home and watch it arrive.
+
+```
+POST /api/remote                → { id, ownerKey }   create a question
+GET  /api/remote/:id[?peek=1]   → the question        (peek: the asker previewing; doesn't count as opened)
+POST /api/remote/:id/answer     → the reviewed answer, and nothing else
+POST /api/remote/status         → states and uncollected answers, for the asker's keys
+POST /api/remote/:id/collect    → the relay forgets collected answers
+POST /api/remote/:id/delete     → the link says it's no longer available
+```
+
 ## How the three are chosen
 
 Real answers are messy, and the editor is told to expect that (full brief in [`server/prompt.ts`](server/prompt.ts)):
@@ -122,7 +154,7 @@ These rules are covered by tests in [`tests/`](tests). They include a check that
 ```bash
 npm install
 npm run dev          # http://localhost:5173 (also exposed on your LAN for phone testing)
-npm test             # grounding, samples, library, people and formatting tests
+npm test             # grounding, samples, library, people, relay and formatting tests
 npm run build        # typecheck + production build
 ```
 
@@ -148,9 +180,11 @@ Microphone access needs a secure context: `localhost`, or HTTPS when testing on 
 server/
   prompt.ts            The editor's brief: what the model may and may not do
   distill.ts           Claude call: structured output, then grounding
-  api.ts               GET /api/health, POST /api/distill (Node middleware, mounted in Vite)
+  api.ts               GET /api/health, POST /api/distill, /api/remote/… (Node middleware, mounted in Vite)
+  relay.ts             The relay's file storage on a server
 src/
-  App.tsx              Routes: / · /library · /library/people/:id · /library/topics/:key · /library/:id · /you · /you/profile · /ask
+  App.tsx              Routes: / · /library · /library/people/:id · /library/topics/:key · /library/:id · /you · /you/profile
+                       · /sent · /sent/:id · /ask · /a/:id (the answer page, outside the app's tabs)
   styles/              tokens.css (color, type, space, motion), base.css, transitions.css
   components/          Mark (the three-stroke motif), ListeningVisual (the three listening forms), Orb,
                        ThingsEditorial, ThingList, ThingsEditor, SavedCard, AudioPlayer, Sheet, BottomNav, Avatar, Button, Toggle, Icon
@@ -158,11 +192,16 @@ src/
     people/            PersonPicker (find or create someone), WhoSheet (name a conversation, or several people),
                        PersonEditSheet (name, note, photo), MergeSheet
   screens/
-    HomeScreen, LibraryScreen, PersonScreen, TopicScreen, DetailScreen, YouScreen, ProfileScreen
+    HomeScreen, LibraryScreen, PersonScreen, TopicScreen, DetailScreen, YouScreen, ProfileScreen,
+    SentScreen, QuestionScreen
+    answer/            AnswerFlow: the page someone opens from a link
     capture/           CaptureFlow (the state machine) and one component per step
   lib/
     store.tsx          Conversations, people and settings (localStorage); renames, merges and deletes stay consistent
     people.ts          People records: linking, merging, removing, likely duplicates, "asked before"
+    remote/            contract.ts, core.ts (the relay, wherever it runs), relay.ts (server or browser, links),
+                       receive.ts (answers → conversations), useRemoteSync.ts, invite.ts, describe.ts
+    shareCard.ts       The shareable picture of a 3 Things
     photo.ts           A chosen photo, squared and kept small, on the device
     library.ts         People, topics and places derived from conversations, and Library search
     yearOfConversations.ts  A year of sample conversations, to preview a full Library
@@ -173,7 +212,7 @@ src/
 tests/                 Vitest
 ```
 
-Everything stays on the device for now: conversations, people and your profile in `localStorage`, recordings in IndexedDB (and only when *Keep original audio* is on).
+Your Library stays on the device: conversations, people and your profile in `localStorage`, recordings in IndexedDB (and only when *Keep original audio* is on). The only thing kept elsewhere is a sent question on the relay, and an answer only until your app has it.
 
 ## Design language
 
@@ -185,4 +224,4 @@ Everything stays on the device for now: conversations, people and your profile i
 
 ## Deliberately not built yet
 
-Social features, public profiles, discovery, feeds, followers, likes, comments, messaging, maps, restaurant APIs, recommendations, AI summaries across people, and gamification. Sharing is a basic share sheet only. Also not built: friend requests, follows, contacts syncing, facial recognition, automatic photo capture, online status, account linking and shared profiles. People are small private records that conversations point to; topics and places are derived from conversations. Conversations saved before people had records are linked to them by name on load.
+Social features, public profiles, discovery, feeds, followers, likes, comments, messaging, chat, group chats, public answers or question boards, votes, rankings, AI aggregation across people, maps, restaurant APIs, recommendations, AI summaries across people, and gamification. Sharing is a basic share sheet only. Also not built: friend requests, follows, contacts syncing, facial recognition, automatic photo capture, online status, account linking and shared profiles. People are small private records that conversations point to; topics and places are derived from conversations. Conversations saved before people had records are linked to them by name on load.

@@ -429,3 +429,25 @@
   gap: 18px;
   margin-top: 14px;
 }
+
+/* Questions sent to people, still out: one quiet line, not an inbox. */
+.sentLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin-top: 14px;
+  padding: 0 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink-2);
+}
+
+.sentLink > span {
+  flex: 1;
+}
+
+.sentLink svg {
+  color: var(--ink-3);
+}

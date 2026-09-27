@@ -4,13 +4,17 @@ import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { Wordmark } from "../components/Mark";
 import { listPeople } from "../lib/library";
+import { isWaiting, sentTo, sentWhen, stateLabel } from "../lib/remote/describe";
 import { starterQuestions } from "../lib/samples";
 import { useStore } from "../lib/store";
 import styles from "./HomeScreen.module.css";
 
 export function HomeScreen() {
   const navigate = useNavigate();
-  const { captures, people } = useStore();
+  const { captures, people, outgoing, getPerson } = useStore();
+  // Answers that came back and haven't been opened. Personal, not a feed.
+  const arrived = captures.filter((c) => c.unseen);
+  const waiting = outgoing.filter(isWaiting);
 
   // Once asking people things is a habit (not on a first visit), the people
   // you learn from most recently are one tap from asking again.
@@ -54,6 +58,32 @@ export function HomeScreen() {
         </Link>
       </section>
 
+      {arrived.length > 0 && (
+        <section className={styles.again} aria-labelledby="new-from-people">
+          <h2 id="new-from-people" className={styles.examplesTitle}>
+            New from your people
+          </h2>
+          <ul className={styles.rows}>
+            {arrived.map((c) => {
+              const ids = c.personIds ?? [];
+              const photo = ids.length === 1 ? getPerson(ids[0])?.photo : undefined;
+              return (
+                <li key={c.id}>
+                  <Link to={`/library/${c.id}`} viewTransition className={styles.row}>
+                    <Avatar name={c.person} photo={photo} size="sm" />
+                    <span className={styles.rowText}>
+                      <span className={styles.rowWho}>{c.person || "Someone"} answered your question</span>
+                      <span className={`serif ${styles.rowQuestion}`}>{c.question}</span>
+                      <span className={styles.rowAction}>See {c.person ? `${c.person}’s` : "their"} 3</span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {recent.length > 0 && (
         <section className={styles.again} aria-labelledby="ask-again">
           <h2 id="ask-again" className={styles.examplesTitle}>
@@ -69,6 +99,39 @@ export function HomeScreen() {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {waiting.length > 0 && (
+        <section className={styles.again} aria-labelledby="waiting">
+          <h2 id="waiting" className={styles.examplesTitle}>
+            Waiting for answers
+          </h2>
+          <ul className={styles.rows}>
+            {waiting.slice(0, 3).map((o) => {
+              const name = sentTo(o, people);
+              return (
+                <li key={o.id}>
+                  <Link to={`/sent/${encodeURIComponent(o.id)}`} viewTransition className={styles.row}>
+                    <Avatar name={name} size="sm" />
+                    <span className={styles.rowText}>
+                      <span className={styles.rowWho}>{name || "Anyone with the link"}</span>
+                      <span className={`serif ${styles.rowQuestion}`}>{o.question}</span>
+                      <span className={styles.rowMeta}>
+                        {sentWhen(o.sentAt)}
+                        {o.state === "opened" && ` · ${stateLabel(o)}`}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          {outgoing.length > 3 && (
+            <Link to="/sent" viewTransition className={styles.allSent}>
+              Everything you’ve sent
+            </Link>
+          )}
         </section>
       )}
 

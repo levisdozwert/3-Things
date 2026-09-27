@@ -11,11 +11,14 @@ import type { DistilledThing } from "../../lib/distill/contract";
 import { newId, tidyQuestion } from "../../lib/format";
 import { listPeople } from "../../lib/library";
 import { isNew, nameKey, speakerLabel, type Speaker } from "../../lib/people";
-import { useStore } from "../../lib/store";
+import { copyInvite, shareInvite } from "../../lib/remote/invite";
+import { answerLink, detectRelay, relayFor } from "../../lib/remote/relay";
+import { askerName, useStore } from "../../lib/store";
 import { withTransition, type Direction } from "../../lib/transition";
 import type { Capture, Recording, Thing } from "../../lib/types";
 import { AskStep } from "./AskStep";
 import { EditStep } from "./EditStep";
+import { HowStep } from "./HowStep";
 import flow from "./Flow.module.css";
 import { ListeningStep, type ListeningProblem } from "./ListeningStep";
 import { ProblemStep, type Problem } from "./ProblemStep";
@@ -23,9 +26,34 @@ import { ProcessingStep } from "./ProcessingStep";
 import { ReadyStep } from "./ReadyStep";
 import { ReviewStep } from "./ReviewStep";
 import { SavedStep } from "./SavedStep";
+import { SentStep } from "./SentStep";
+import { ShareStep } from "./ShareStep";
 import { WhoStep } from "./WhoStep";
 
-type Step = "ask" | "who" | "ready" | "listening" | "processing" | "review" | "edit" | "saved" | "problem";
+type Step =
+  | "ask"
+  | "how"
+  | "who"
+  | "ready"
+  | "listening"
+  | "processing"
+  | "review"
+  | "edit"
+  | "saved"
+  | "problem"
+  // Sending it: they answer on their own phone.
+  | "send-who"
+  | "share"
+  | "sent";
+
+/** A question on the relay, created once and reused if sharing is tried again. */
+interface Prepared {
+  id: string;
+  ownerKey: string;
+  via: "server" | "local";
+  /** Who it was prepared for, so choosing someone else prepares a new one. */
+  forKey: string;
+}
 
 /** Going back to the speaker from the review screen. */
 type Asking = { kind: "more"; want: number; asked: string } | { kind: "clarify"; index: number; asked: string };
@@ -45,19 +73,27 @@ const MIN_FOLLOW_UP_MS = 3400;
 const MAX_RECORDING_SEC = 30 * 60;
 
 /**
- * Ask → Who → Ready → Listen → Understand → Verify → Save.
+ * Ask → How → Who → Ready → Listen → Understand → Verify → Save, or
+ * Ask → How → Who → Share → Sent, when they'll answer on their own phone.
  * One screen at a time, with the question carried through every step.
  */
 export function CaptureFlow() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { settings, saveCapture, captures, people, getPerson } = useStore();
+  const { settings, saveCapture, captures, people, getPerson, updateProfile, addOutgoing } = useStore();
 
   const recorder = useRecorder();
   const answer = useSpeechRecognition({ continuous: true });
 
   const initialQuestion = tidyQuestion(params.get("q") ?? "");
-  const [step, setStep] = useState<Step>(initialQuestion ? "who" : "ask");
+  // "Ask someone else too" arrives here with the question and how it's being asked.
+  const sendingAgain = params.get("send") === "1" && Boolean(initialQuestion);
+  const [step, setStep] = useState<Step>(sendingAgain ? "send-who" : initialQuestion ? "how" : "ask");
+  const [group, setGroup] = useState(() => params.get("group") || newId());
+  const [prepared, setPrepared] = useState<Prepared | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareProblem, setShareProblem] = useState<string | null>(null);
+  const [sentAs, setSentAs] = useState<{ id: string; person: string; copied: boolean } | null>(null);
   const [askMode, setAskMode] = useState<"voice" | "type">(params.get("type") ? "type" : "voice");
   const [question, setQuestion] = useState(initialQuestion);
   // "Ask Jason something": start with Jason already chosen.
@@ -408,6 +444,66 @@ export function CaptureFlow() {
   const known = preselected ? listPeople(captures, people).find((p) => p.id === preselected) : undefined;
   const askingContext = known ? { name: known.name, photo: known.photo, topics: known.topics.slice(0, 3) } : undefined;
 
+  // ── Sending it ─────────────────────────────────────────────
+
+  const forKey = JSON.stringify(speakers);
+  const signedAs = askerName(settings);
+
+  const prepare = async (): Promise<Prepared> => {
+    if (prepared && prepared.forKey === forKey) return prepared;
+    const relay = relayFor(await detectRelay());
+    const created = await relay.create({
+      question,
+      askerName: signedAs,
+      forName: person,
+      wantsAudio: settings.keepRecordings,
+    });
+    const next = { ...created, via: relay.kind, forKey };
+    setPrepared(next);
+    return next;
+  };
+
+  const send = async (how: "share" | "copy") => {
+    setSharing(true);
+    setShareProblem(null);
+    try {
+      const ready = await prepare();
+      const invite = { asker: signedAs, question, link: answerLink(ready.id) };
+      const result = how === "share" ? await shareInvite(invite) : await copyInvite(invite);
+      if (result === "cancelled") return;
+      if (result === "failed") {
+        setShareProblem("Couldn’t open sharing or copy the link. Try again.");
+        return;
+      }
+      addOutgoing({
+        id: ready.id,
+        ownerKey: ready.ownerKey,
+        via: ready.via,
+        question,
+        speakers,
+        person,
+        group,
+        sentAt: new Date().toISOString(),
+        state: "sent",
+        answers: [],
+        wantsAudio: settings.keepRecordings,
+      });
+      setSentAs({ id: ready.id, person, copied: result === "copied" });
+      go("sent");
+    } catch {
+      setShareProblem("Couldn’t prepare the question. Check your connection and try again.");
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const askSomeoneElse = () => {
+    setSpeakers([]);
+    setPrepared(null);
+    setSentAs(null);
+    go("send-who", "back");
+  };
+
   // ── Render ─────────────────────────────────────────────────
 
   const followUpLabel = asking?.kind === "more" ? `Asking for ${asking.want === 1 ? "one more" : "two more"}` : "A quick follow-up";
@@ -421,9 +517,63 @@ export function CaptureFlow() {
           asking={askingContext}
           onContinue={(q) => {
             setQuestion(tidyQuestion(q));
-            go("who");
+            setGroup(newId());
+            go("how");
           }}
           onClose={leave}
+        />
+      )}
+
+      {step === "how" && (
+        <HowStep
+          question={question}
+          onInPerson={() => go("who")}
+          onSend={() => go("send-who")}
+          onBack={() => {
+            setAskMode("type");
+            go("ask", "back");
+          }}
+        />
+      )}
+
+      {step === "send-who" && (
+        <WhoStep
+          sending
+          question={question}
+          speakers={speakers}
+          onChange={setSpeakers}
+          onContinue={() => go("share")}
+          onSkip={() => {
+            setSpeakers([]);
+            go("share");
+          }}
+          onBack={() => (sendingAgain ? leave() : go("how", "back"))}
+        />
+      )}
+
+      {step === "share" && (
+        <ShareStep
+          question={question}
+          person={person}
+          askerName={signedAs}
+          onAskerName={(firstName) => updateProfile({ firstName })}
+          keepsAudio={settings.keepRecordings}
+          busy={sharing}
+          problem={shareProblem}
+          onShare={() => void send("share")}
+          onCopy={() => void send("copy")}
+          onBack={() => go("send-who", "back")}
+        />
+      )}
+
+      {step === "sent" && sentAs && (
+        <SentStep
+          id={sentAs.id}
+          question={question}
+          person={sentAs.person}
+          copied={sentAs.copied}
+          onAskSomeoneElse={askSomeoneElse}
+          onDone={leave}
         />
       )}
 
@@ -437,10 +587,7 @@ export function CaptureFlow() {
             setSpeakers([]);
             go("ready");
           }}
-          onBack={() => {
-            setAskMode("type");
-            go("ask", "back");
-          }}
+          onBack={() => go("how", "back")}
         />
       )}
 

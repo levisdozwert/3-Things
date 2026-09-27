@@ -179,3 +179,23 @@
   min-height: 36px;
   color: var(--ink-3);
 }
+
+/* An answer that just arrived: said once, quietly. */
+.arrived {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--ember-wash);
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink);
+  animation: fade var(--t-slow) var(--ease-out) both;
+}
+
+.arrived svg {
+  flex-shrink: 0;
+  color: var(--ember-ink);
+}

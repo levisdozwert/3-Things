@@ -1,0 +1,204 @@
+/* Asking someone who isn't with you: a question, where it goes, and that it went. */
+
+.content {
+  padding-top: 5vh;
+  gap: 12px;
+}
+
+.how {
+  margin-top: 32px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.heading {
+  font-size: 1.375rem;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 36;
+}
+
+.choices {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.choices > .choice + .choice {
+  border-top: 1px solid var(--line);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 76px;
+  padding: 14px 0;
+  text-align: left;
+  transition: opacity var(--t-fast) var(--ease-soft);
+}
+
+.choice:active {
+  opacity: 0.6;
+}
+
+.choiceIcon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ember-wash);
+  color: var(--ember-ink);
+}
+
+.choiceText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.choiceTitle {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "opsz" 30;
+}
+
+.choiceDetail {
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.chevron {
+  color: var(--ink-4);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--ink-2);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 36;
+}
+
+.quoted {
+  margin-top: 4px;
+}
+
+.details {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.line {
+  font-size: var(--text-small);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.line strong {
+  font-weight: 580;
+  color: var(--ink);
+}
+
+.problem {
+  font-size: var(--text-small);
+  color: var(--ember-ink);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.fieldLabel {
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+}
+
+.input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1.5px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 0 8px;
+  font-size: 1.25rem;
+  font-weight: 540;
+  color: var(--ink);
+  caret-color: var(--ember);
+}
+
+.input:focus {
+  border-bottom-color: var(--ember);
+}
+
+.input::placeholder {
+  color: var(--ink-4);
+  font-weight: 420;
+}
+
+.done {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "opsz" 36;
+}
+
+.check {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ember-wash);
+  color: var(--ember-ink);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-top: 4px;
+}
+
+.link {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-small);
+  font-weight: 560;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+@media (max-height: 700px) {
+  .content {
+    padding-top: 1vh;
+  }
+  .how {
+    margin-top: 18px;
+  }
+}

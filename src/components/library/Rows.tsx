@@ -55,6 +55,7 @@ export function ConversationRow({
             <span className={person ? styles.person : styles.unnamed}>
               {person ? <Highlight text={person} terms={terms} /> : sourceLine("")}
             </span>
+            {capture.unseen && <span className={styles.fresh}>New</span>}
             {capture.keptClose && (
               <span className={styles.kept} title="Kept close">
                 <Icon name="bookmarked" size={16} strokeWidth={1.6} />

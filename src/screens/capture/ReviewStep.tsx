@@ -34,6 +34,11 @@ interface ReviewStepProps {
   onAskMore: () => void;
   onSwapExtra: (index: number) => void;
   onClose: () => void;
+  /**
+   * The person who spoke is the one reviewing, on their own phone, before
+   * anything is sent in their name.
+   */
+  answering?: { askerName: string };
 }
 
 const COUNT_WORDS = ["no", "one", "two", "three"];
@@ -59,6 +64,7 @@ export function ReviewStep({
   onAskMore,
   onSwapExtra,
   onClose,
+  answering,
 }: ReviewStepProps) {
   const [naming, setNaming] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
@@ -71,22 +77,28 @@ export function ReviewStep({
     unclear === 1 ? "One thing needs clarification" : unclear > 1 ? `${COUNT_WORDS[unclear]} things need clarification` : null,
   ].filter(Boolean);
 
-  const source = count === 3 && person ? `3 Things from ${person}` : sourceLine(person);
-  const askMoreLabel = count === 2 ? "Ask for one more" : "Ask for two more";
+  const source = answering
+    ? count === 3
+      ? "Your 3 Things"
+      : `Your ${COUNT_WORDS[count]} ${count === 1 ? "thing" : "things"}`
+    : count === 3 && person
+      ? `3 Things from ${person}`
+      : sourceLine(person);
+  const askMoreLabel = answering ? "Add one more" : count === 2 ? "Ask for one more" : "Ask for two more";
 
   return (
     <>
       <div className={flow.topbar}>
-        <IconButton icon="close" label="Leave without saving" onClick={onClose} />
+        <IconButton icon="close" label={answering ? "Stop without sending" : "Leave without saving"} onClick={onClose} />
       </div>
 
       <div className={`${flow.content} ${styles.content}`}>
         <header className={styles.header}>
           <h1 className={`${flow.question} ${styles.question}`}>{question}</h1>
           <div className={`${styles.from} ${flow.enterLate}`}>
-            <Avatar name={person} size="sm" />
+            {!answering && <Avatar name={person} size="sm" />}
             <span className={styles.source}>{source}</span>
-            {!person && (
+            {!person && !answering && (
               <button type="button" className={styles.addName} onClick={() => setNaming(true)}>
                 Add their name
               </button>
@@ -122,8 +134,11 @@ export function ReviewStep({
           missing={
             <div className={styles.missing}>
               <p className={`serif ${styles.missingNote}`}>
-                Only {COUNT_WORDS[count]} clear {count === 1 ? "thing" : "things"} came up. We didn’t fill the{" "}
-                {count === 2 ? "third" : "rest"}.
+                {answering
+                  ? `${count === 1 ? "One clear thing" : "Two clear things"}. That’s fine to send as it is.`
+                  : `Only ${COUNT_WORDS[count]} clear ${count === 1 ? "thing" : "things"} came up. We didn’t fill the ${
+                      count === 2 ? "third" : "rest"
+                    }.`}
               </p>
               <Button variant="quiet" size="md" icon="mic" onClick={onAskMore} className={styles.askMore}>
                 {askMoreLabel}
@@ -165,15 +180,20 @@ export function ReviewStep({
       </div>
 
       <div className={`${flow.footer} ${styles.footer}`}>
-        <p className={styles.prompt}>Did we get their {count === 3 ? "3" : count} right?</p>
+        <p className={styles.prompt}>
+          {answering ? "Does this sound like you?" : `Did we get their ${count === 3 ? "3" : count} right?`}
+        </p>
         <div className={flow.footerRow}>
           <Button variant="quiet" icon="pencil" onClick={() => onEdit()} className={styles.editButton}>
             Edit
           </Button>
           <Button icon="check" onClick={onLooksRight} disabled={saving || count === 0}>
-            Looks right
+            {answering ? `Send my ${count}` : "Looks right"}
           </Button>
         </div>
+        {answering && (
+          <p className={styles.sendNote}>Nothing is shared with {answering.askerName} until you send it.</p>
+        )}
       </div>
 
       {extra && (

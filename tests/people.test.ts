@@ -107,6 +107,12 @@ describe("asking someone again", () => {
     expect(askedBefore(library, sarah.id, "What do first-time founders usually get wrong?")).toBeUndefined();
     expect(askedBefore(library, jason.id, "What are three books you love?")).toBeUndefined();
   });
+
+  it("knows a different place makes a different question", () => {
+    expect(questionSimilarity("What are three places I shouldn't miss in Chicago?", "What are three places I shouldn't miss in Boston?")).toBe(0);
+    expect(askedBefore(library, sarah.id, "What are three places I shouldn't miss in Chicago?")).toBeUndefined();
+    expect(askedBefore(library, sarah.id, "What places should I not miss in Boston?")?.place).toBe("Boston");
+  });
 });
 
 describe("finding someone", () => {

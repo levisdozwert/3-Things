@@ -70,6 +70,45 @@ export interface Capture {
   preview?: boolean;
   /** Marked as especially meaningful. */
   keptClose?: boolean;
+  /**
+   * Answered from a link on their own phone, reviewed by them, and sent back.
+   * The things are exactly the version they chose to send.
+   */
+  remote?: { sentAt: string; answeredAt: string };
+  /** Arrived from someone and not opened yet. */
+  unseen?: boolean;
+}
+
+/** Who answered, as the app knows them: someone in the Library, or a new name. */
+export type Speaker = { id: string } | { name: string };
+
+/**
+ * A question sent to someone to answer on their own phone, whenever they can.
+ * Not a message thread: a question, where it went, and whether it came back.
+ */
+export interface Outgoing {
+  /** The question's id on the relay, which is also its link. */
+  id: string;
+  /** Proves to the relay that this app asked it. Never shared. */
+  ownerKey: string;
+  /** Where it waits: a server, or (in static previews) this browser. */
+  via: "server" | "local";
+  question: string;
+  /** Who it was sent to. None: anyone with the link can answer. */
+  speakers: Speaker[];
+  /** Their name as it read when sent. */
+  person: string;
+  /** The same question sent to several people shares a group. Each answer stays separate. */
+  group: string;
+  sentAt: string;
+  /** Sent, opened, answered. No read receipts, no times. */
+  state: "sent" | "opened" | "answered";
+  /** The last reminder the user chose to send. Never automatic. */
+  remindedAt?: string;
+  /** Conversations that came back from it. */
+  answers: string[];
+  wantsAudio: boolean;
+  sample?: boolean;
 }
 
 /** Just enough to be you in the app. No birthday, job, school or handles. */
@@ -91,6 +130,8 @@ export interface Settings {
   /** Fewer animations between screens, on top of the device's own setting. */
   calmMotion: boolean;
   largerText: boolean;
+  /** A quiet note when someone sends their 3 back. Nothing else ever notifies. */
+  notifyAnswers: boolean;
 }
 
 /** What the listening step hands to the rest of the flow. */

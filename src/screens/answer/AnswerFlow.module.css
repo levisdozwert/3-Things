@@ -1,0 +1,254 @@
+/* Someone else's phone, maybe the first time they've seen 3 Things: warm, clear, never a form. */
+
+.quiet {
+  align-items: center;
+  justify-content: center;
+}
+
+.center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.message {
+  max-width: 16em;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  color: var(--ink);
+  text-wrap: balance;
+  font-variation-settings: "SOFT" 100, "opsz" 36;
+}
+
+.thanks {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.brand {
+  padding-left: 10px;
+}
+
+.landing {
+  padding-top: 4vh;
+  gap: 14px;
+}
+
+.peek {
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--paper-sunken);
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.asked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.asked strong {
+  font-weight: 620;
+  color: var(--ink);
+}
+
+.question {
+  margin-top: 4px;
+}
+
+.lede {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 24em;
+}
+
+.trust {
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.trust > p {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.trust > p svg {
+  margin-top: 2px;
+  color: var(--ink-3);
+}
+
+.allow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 6px;
+  padding: 12px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.allow > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.allowTitle {
+  font-size: var(--text-small);
+  font-weight: 560;
+  color: var(--ink);
+}
+
+.allowDetail {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.footer {
+  align-items: center;
+  gap: 6px;
+  padding-top: 20px;
+}
+
+.typing {
+  padding-top: 2vh;
+  gap: 14px;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 12em;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--paper-raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--ink);
+  resize: vertical;
+  caret-color: var(--ember);
+}
+
+.textarea:focus {
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+.textarea::placeholder {
+  color: var(--ink-4);
+}
+
+.sent {
+  padding-top: 5vh;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.check {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ember-wash);
+  color: var(--ember-ink);
+}
+
+.sentTitle {
+  font-size: var(--text-question-xl);
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 72;
+}
+
+/* What they sent, as a small keepsake of their own. */
+.keepsake {
+  margin-top: 18px;
+  width: 100%;
+  padding: 20px 20px 16px;
+  border-radius: var(--r-lg);
+  background: var(--paper-raised);
+  box-shadow: 0 1px 0 var(--line), 0 12px 32px -20px rgba(28, 25, 22, 0.25);
+  text-align: left;
+}
+
+.keepsakeQuestion {
+  margin-bottom: 12px;
+  font-size: 1.125rem;
+  line-height: 1.35;
+  color: var(--ink-2);
+  font-variation-settings: "SOFT" 100, "opsz" 24;
+}
+
+.explore {
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.previewNote {
+  max-width: 24em;
+  margin-bottom: 10px;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+}
+
+.exploreLink {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 580;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+.nameInput {
+  width: 100%;
+  margin-top: 8px;
+  border: 0;
+  border-bottom: 1.5px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 0 10px;
+  font-size: 1.25rem;
+  font-weight: 540;
+  color: var(--ink);
+  caret-color: var(--ember);
+}
+
+.nameInput:focus {
+  border-bottom-color: var(--ember);
+}
+
+.nameHint {
+  margin-top: 10px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+@media (max-height: 700px) {
+  .landing {
+    padding-top: 0;
+  }
+}

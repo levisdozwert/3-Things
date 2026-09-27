@@ -194,3 +194,9 @@
   color: var(--ember);
   font-weight: 400;
 }
+
+.sendNote {
+  text-align: center;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}

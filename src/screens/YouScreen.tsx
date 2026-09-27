@@ -230,9 +230,21 @@ export function YouScreen() {
           onClick={() => setOpen("appearance")}
         />
         <Row
-          title="Notifications"
-          detail="3 Things doesn’t send notifications. It won’t nudge you to ask anyone anything."
-          control={<span className={styles.value}>Off</span>}
+          title="When someone answers"
+          detail="A quiet note when someone sends their 3 back. That’s the only thing 3 Things ever tells you: no reminders, no streaks."
+          control={
+            <Toggle
+              label="When someone answers"
+              checked={settings.notifyAnswers}
+              onChange={(v) => {
+                updateSettings({ notifyAnswers: v });
+                // Device notifications only if the user turns this on themselves.
+                if (v && typeof Notification !== "undefined" && Notification.permission === "default") {
+                  void Notification.requestPermission();
+                }
+              }}
+            />
+          }
         />
         <RowButton title="Help" detail="How 3 Things listens" onClick={() => setOpen("help")} />
         <RowButton title="Privacy" onClick={() => setOpen("privacy")} />

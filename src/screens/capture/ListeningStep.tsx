@@ -33,6 +33,14 @@ interface ListeningStepProps {
   onCancel: () => void;
   onRetry: () => void;
   onPreviewWithoutMic: () => void;
+  /** Answering on your own phone: "Your answer" in place of "Listening to Jason". */
+  label?: string;
+  /** The line that shows while they speak. */
+  prompt?: string;
+  /** A labelled finish ("Finish") in place of the stop square. */
+  finishLabel?: string;
+  /** Offered when the microphone can't be used: another way to answer. */
+  onType?: () => void;
 }
 
 /**
@@ -57,6 +65,9 @@ function Listening({
   onPause,
   onResume,
   onCancel,
+  label,
+  prompt = "Speak naturally. We’ll keep the ideas that matter.",
+  finishLabel,
 }: ListeningStepProps) {
   const name = person.trim();
   const [quiet, setQuiet] = useState<"none" | "short" | "long">("none");
@@ -109,9 +120,9 @@ function Listening({
       ? "Still listening."
       : quiet === "short"
         ? "Take your time."
-        : "Speak naturally. We’ll keep the ideas that matter.";
+        : prompt;
 
-  const status = paused ? "Paused" : name ? `Listening to ${name}` : "Listening";
+  const status = paused ? "Paused" : (label ?? (name ? `Listening to ${name}` : "Listening"));
 
   return (
     <div className={`${styles.listening} ${receded && !paused ? styles.receded : ""}`}>
@@ -153,9 +164,18 @@ function Listening({
           >
             <Icon name={paused ? "play" : "pause"} size={20} />
           </button>
-          <button type="button" className={styles.stop} onClick={onStop} aria-label="Stop">
-            <Icon name="stop" size={30} />
-          </button>
+          {finishLabel ? (
+            <button type="button" className={styles.finish} onClick={onStop}>
+              <span className={styles.stop} aria-hidden="true">
+                <Icon name="check" size={30} strokeWidth={2} />
+              </span>
+              <span className={styles.finishLabel}>{finishLabel}</span>
+            </button>
+          ) : (
+            <button type="button" className={styles.stop} onClick={onStop} aria-label="Stop">
+              <Icon name="stop" size={30} />
+            </button>
+          )}
           <span className={`tabular ${styles.timer} ${styles.chrome}`} aria-label={`Recorded ${timer(elapsed)}`}>
             {timer(elapsed)}
           </span>
@@ -173,6 +193,7 @@ function ListeningProblemView({
   onRetry,
   onCancel,
   onPreviewWithoutMic,
+  onType,
 }: ListeningStepProps & { problem: ListeningProblem }) {
   const copy = {
     denied: {
@@ -208,6 +229,11 @@ function ListeningProblemView({
         <Button block icon="mic" onClick={onRetry} disabled={starting}>
           Try again
         </Button>
+        {onType && (
+          <Button block variant="quiet" size="md" icon="keyboard" onClick={onType}>
+            Type instead
+          </Button>
+        )}
         {canPreview && problem !== "failed" && (
           <Button block variant="text" size="md" onClick={onPreviewWithoutMic}>
             Preview without the microphone
