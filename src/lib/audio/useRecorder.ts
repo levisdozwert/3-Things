@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type RecorderStatus = "idle" | "starting" | "recording" | "denied" | "unavailable";
+export type RecorderStatus =
+  | "idle"
+  | "starting"
+  | "recording"
+  | "paused"
+  /** The microphone was refused. */
+  | "denied"
+  /** No microphone, or no recording support. */
+  | "unavailable"
+  /** Recording started, then the microphone went away or the recorder errored. */
+  | "failed";
 
 const MIME_TYPES = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"];
 
@@ -31,14 +41,21 @@ export function useRecorder() {
   const contextRef = useRef<AudioContext | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const startedAtRef = useRef(0);
   const timerRef = useRef<number | null>(null);
   const wakeLockRef = useRef<WakeLockLike | null>(null);
+
+  // Time spent recording, excluding pauses.
+  const banked = useRef(0);
+  const runningSince = useRef<number | null>(null);
+  const elapsedMs = () => banked.current + (runningSince.current === null ? 0 : performance.now() - runningSince.current);
 
   const teardown = useCallback(() => {
     if (timerRef.current) window.clearInterval(timerRef.current);
     timerRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((t) => {
+      t.onended = null;
+      t.stop();
+    });
     streamRef.current = null;
     void contextRef.current?.close().catch(() => {});
     contextRef.current = null;
@@ -48,6 +65,20 @@ export function useRecorder() {
   }, []);
 
   useEffect(() => teardown, [teardown]);
+
+  const fail = useCallback(() => {
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder) {
+      recorder.onstop = null;
+      recorder.onerror = null;
+      if (recorder.state !== "inactive") recorder.stop();
+    }
+    chunksRef.current = [];
+    runningSince.current = null;
+    teardown();
+    setStatus("failed");
+  }, [teardown]);
 
   /**
    * Starts recording. Call it straight from a tap: the audio context is created
@@ -86,7 +117,9 @@ export function useRecorder() {
         const source = context.createMediaStreamSource(stream);
         const analyser = context.createAnalyser();
         analyser.fftSize = 1024;
-        analyser.smoothingTimeConstant = 0.82;
+        analyser.minDecibels = -90;
+        analyser.maxDecibels = -22;
+        analyser.smoothingTimeConstant = 0.72;
         source.connect(analyser);
         if (context.state === "suspended") void context.resume().catch(() => {});
         contextRef.current = context;
@@ -96,20 +129,32 @@ export function useRecorder() {
       }
     }
 
-    const mimeType = pickMimeType();
-    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-    chunksRef.current = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunksRef.current.push(e.data);
-    };
-    recorder.start(1000);
+    let recorder: MediaRecorder;
+    try {
+      const mimeType = pickMimeType();
+      recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      recorder.onerror = () => fail();
+      recorder.start(1000);
+    } catch {
+      teardown();
+      setStatus("failed");
+      return "failed";
+    }
     recorderRef.current = recorder;
 
-    startedAtRef.current = performance.now();
+    // A microphone that disappears mid-conversation (unplugged, taken by a call) ends the recording.
+    stream.getAudioTracks().forEach((track) => {
+      track.onended = () => recorderRef.current && fail();
+    });
+
+    banked.current = 0;
+    runningSince.current = performance.now();
     setElapsed(0);
-    timerRef.current = window.setInterval(() => {
-      setElapsed(Math.floor((performance.now() - startedAtRef.current) / 1000));
-    }, 250);
+    timerRef.current = window.setInterval(() => setElapsed(Math.floor(elapsedMs() / 1000)), 250);
 
     try {
       const wakeLock = (navigator as Navigator & { wakeLock?: { request(type: "screen"): Promise<WakeLockLike> } })
@@ -121,15 +166,35 @@ export function useRecorder() {
 
     setStatus("recording");
     return "recording";
+  }, [fail, teardown]);
+
+  const pause = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
+    recorder.pause();
+    if (runningSince.current !== null) banked.current += performance.now() - runningSince.current;
+    runningSince.current = null;
+    setElapsed(Math.floor(elapsedMs() / 1000));
+    setStatus("paused");
+  }, []);
+
+  const resume = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== "paused") return;
+    recorder.resume();
+    runningSince.current = performance.now();
+    setStatus("recording");
   }, []);
 
   const stop = useCallback(async (): Promise<StoppedRecording> => {
     const recorder = recorderRef.current;
-    const durationSec = startedAtRef.current ? (performance.now() - startedAtRef.current) / 1000 : 0;
+    const durationSec = elapsedMs() / 1000;
     recorderRef.current = null;
+    runningSince.current = null;
 
     const blob = await new Promise<Blob | null>((resolve) => {
       if (!recorder || recorder.state === "inactive") return resolve(null);
+      recorder.onerror = null;
       recorder.onstop = () => {
         const chunks = chunksRef.current;
         resolve(chunks.length ? new Blob(chunks, { type: recorder.mimeType || chunks[0].type }) : null);
@@ -145,8 +210,10 @@ export function useRecorder() {
   const discard = useCallback(() => {
     const recorder = recorderRef.current;
     recorderRef.current = null;
+    runningSince.current = null;
     if (recorder && recorder.state !== "inactive") {
       recorder.onstop = null;
+      recorder.onerror = null;
       recorder.stop();
     }
     chunksRef.current = [];
@@ -154,5 +221,5 @@ export function useRecorder() {
     setStatus("idle");
   }, [teardown]);
 
-  return { status, elapsed, analyserRef, start, stop, discard };
+  return { status, elapsed, analyserRef, start, pause, resume, stop, discard };
 }

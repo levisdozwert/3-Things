@@ -1,143 +1,185 @@
-.voice,
-.typed {
-  padding-top: 12vh;
+.content {
+  padding-top: 9vh;
   gap: 14px;
 }
 
-.spoken {
-  text-align: left;
+.heading {
+  font-size: var(--text-question-xl);
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+  font-weight: 420;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 72;
+  color: var(--ink);
+  text-wrap: balance;
+  view-transition-name: ask-heading;
+  width: fit-content;
+  max-width: 100%;
+  transition: color var(--t-slow) var(--ease-soft);
+}
+
+.headingQuiet {
+  color: var(--ink-3);
+}
+
+.lede {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 22em;
+  text-wrap: pretty;
+}
+
+.examples {
+  margin-top: 36px;
+}
+
+.examples ul {
+  margin-top: 4px;
+}
+
+.examples li + li {
+  border-top: 1px solid var(--line);
+}
+
+.example {
   display: block;
-  min-height: 3.6em;
-  border-radius: var(--r-md);
+  width: 100%;
+  padding: 12px 0;
+  text-align: left;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 18;
+  transition: color var(--t-fast) var(--ease-soft);
 }
 
-.placeholder {
-  color: var(--ink-4);
+.example:hover {
+  color: var(--ink);
 }
 
-.interim {
+.footer {
+  align-items: center;
+  gap: 6px;
+  padding-top: 20px;
+}
+
+/* Listening for the question: no words on screen, just a sign that it's hearing. */
+.listening {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink);
+}
+
+.waiting > span {
+  animation-duration: 2.4s !important;
+  opacity: 0.55;
+}
+
+.hearing > span {
+  animation-duration: 0.9s !important;
+}
+
+.again {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0;
+  font-size: var(--text-small);
+  font-weight: 520;
   color: var(--ink-3);
+  transition: color var(--t-fast) var(--ease-soft);
 }
 
-.editHint {
-  font-size: var(--text-meta);
-  color: var(--ink-3);
-  animation: fade var(--t-slow) var(--ease-out) both;
+.again:hover {
+  color: var(--ink);
+}
+
+.edit {
+  flex: 0 0 auto !important;
+}
+
+.blockedIcon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ember-wash);
+  color: var(--ember-ink);
+  margin-bottom: 8px;
+}
+
+.typing {
+  gap: 12px;
+}
+
+.typingLabel {
+  view-transition-name: ask-heading;
+  width: fit-content;
 }
 
 .input {
   width: 100%;
   border: 0;
-  padding: 0;
+  padding: 0 0 14px;
   resize: none;
   overflow: hidden;
   background: transparent;
   font-family: var(--font-serif);
   color: var(--ink);
   caret-color: var(--ember);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
   view-transition-name: question;
+  transition: border-color var(--t-base) var(--ease-soft);
+}
+
+.input:focus {
+  border-bottom-color: var(--line-strong);
 }
 
 .input::placeholder {
   color: var(--ink-4);
 }
 
-.notice {
-  font-size: var(--text-meta);
-  color: var(--ink-2);
-}
-
 .starters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 22px;
+  gap: 4px 18px;
+  margin-top: 6px;
+  font-size: var(--text-small);
 }
 
 .startersLabel {
-  width: 100%;
-  font-size: var(--text-meta);
-  color: var(--ink-3);
-  margin-bottom: 2px;
+  color: var(--ink-4);
 }
 
 .starter {
   min-height: 40px;
-  padding: 0 15px;
-  border-radius: var(--r-pill);
-  font-size: 0.9375rem;
   color: var(--ink-2);
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-  transition:
-    background-color var(--t-fast) var(--ease-soft),
-    color var(--t-fast) var(--ease-soft);
+  font-weight: 520;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+  transition: color var(--t-fast) var(--ease-soft);
 }
 
 .starter:hover {
-  background: var(--paper-sunken);
   color: var(--ink);
 }
 
-.voiceControls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.mic {
-  position: relative;
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: var(--on-ember);
-  background: radial-gradient(circle at 35% 30%, #d66340 0%, var(--ember) 62%);
-  view-transition-name: ask-orb;
-  transition: transform var(--t-fast) var(--ease-out);
-}
-
-.mic:active {
-  transform: scale(0.95);
-}
-
-.mic svg {
-  position: relative;
-}
-
-.micRing {
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  background: var(--ember);
-  opacity: 0;
-}
-
-.micLive .micRing {
-  animation: ring 1.8s var(--ease-out) infinite;
-}
-
-@keyframes ring {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.22;
-  }
-  100% {
-    transform: scale(1.35);
-    opacity: 0;
-  }
-}
-
-.micHint {
-  font-size: var(--text-small);
-  color: var(--ink-2);
-}
-
 @media (max-height: 700px) {
-  .voice,
-  .typed {
-    padding-top: 5vh;
+  .content {
+    padding-top: 3vh;
+  }
+  .examples {
+    margin-top: 20px;
   }
 }

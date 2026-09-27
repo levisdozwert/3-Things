@@ -1,17 +1,43 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, IconButton } from "../../components/Button";
 import { Icon } from "../../components/Icon";
-import { useSpeechRecognition } from "../../lib/audio/useSpeechRecognition";
+import { Mark } from "../../components/Mark";
+import { Orb } from "../../components/Orb";
+import { BLOCKING_ERRORS, useSpeechRecognition } from "../../lib/audio/useSpeechRecognition";
+import { detectMode } from "../../lib/distill/client";
 import { tidyQuestion } from "../../lib/format";
+import { withTransition } from "../../lib/transition";
 import flow from "./Flow.module.css";
 import styles from "./AskStep.module.css";
+
+/** Human questions, not prompts. Tapping one uses it. */
+const EXAMPLES = [
+  "What are three things every first-time founder should know?",
+  "What are three places I shouldn’t miss in Jersey City?",
+  "What are three things life has taught you?",
+];
 
 const STARTERS = [
   ["Three things…", "What are three things"],
   ["Three places…", "What are three places"],
   ["Three mistakes…", "What are three mistakes"],
-  ["Three books…", "What are three books"],
 ];
+
+/** Used only when previewing without a microphone. */
+const SAMPLE_QUESTION = "What are three things every first-time founder should know?";
+
+type Mode =
+  /** Blank: nothing is recording yet. */
+  | "choose"
+  /** Hearing the asker's question. No words on screen while they speak. */
+  | "listening"
+  /** The question, shown once so the asker can check it. */
+  | "heard"
+  /** Speech ended without words. */
+  | "missed"
+  | "typing"
+  /** The microphone or speech service isn't available. */
+  | "blocked";
 
 interface AskStepProps {
   initialMode: "voice" | "type";
@@ -20,39 +46,59 @@ interface AskStepProps {
   onClose: () => void;
 }
 
-/** Capture the question — spoken or typed — in as few seconds as possible. */
+/**
+ * The start of the conversation: what do you want to ask them?
+ * Speaking is the natural way in; typing is always one tap away.
+ */
 export function AskStep({ initialMode, initialText, onContinue, onClose }: AskStepProps) {
   const speech = useSpeechRecognition({ continuous: false });
-  const [mode, setMode] = useState<"voice" | "type">(speech.supported ? initialMode : "type");
+  const [mode, setModeNow] = useState<Mode>(
+    initialText || initialMode === "type" || !speech.supported ? "typing" : "choose",
+  );
   const [text, setText] = useState(initialText);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [blockedBy, setBlockedBy] = useState<"mic" | "speech">("mic");
+  const [simulated, setSimulated] = useState(false);
+  const [canPreview, setCanPreview] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { start: startSpeech, abort: abortSpeech } = speech;
+  const { start: startSpeech, stop: stopSpeech, abort: abortSpeech } = speech;
+
+  const setMode = (next: Mode) => withTransition(() => setModeNow(next));
 
   useEffect(() => {
-    if (mode !== "voice") return;
-    startSpeech();
-    return () => abortSpeech();
-  }, [mode, startSpeech, abortSpeech]);
+    void detectMode().then((m) => setCanPreview(m === "preview"));
+  }, []);
 
-  useEffect(() => {
-    if (mode === "voice" && speech.text) setText(speech.text);
-  }, [mode, speech.text]);
+  useEffect(() => () => abortSpeech(), [abortSpeech]);
 
+  // When the browser finishes hearing the question, show it once.
   useEffect(() => {
-    if (!speech.error || mode !== "voice") return;
-    if (["not-allowed", "service-not-allowed", "audio-capture", "network"].includes(speech.error)) {
-      setNotice(
-        speech.error === "network"
-          ? "Speech isn't available right now, so type it instead."
-          : "The microphone isn't available, so type it instead.",
-      );
-      setMode("type");
+    if (mode !== "listening" || simulated || speech.listening) return;
+    if (speech.error && BLOCKING_ERRORS.has(speech.error)) {
+      setBlockedBy("mic");
+      setMode("blocked");
+    } else if (speech.error === "network") {
+      setBlockedBy("speech");
+      setMode("blocked");
+    } else if (speech.text.trim()) {
+      setText(tidyQuestion(speech.text));
+      setMode("heard");
+    } else {
+      setMode("missed");
     }
-  }, [speech.error, mode]);
+  }, [mode, simulated, speech.listening, speech.error, speech.text]);
+
+  // Preview only: a stand-in question, so the flow can be felt without a microphone.
+  useEffect(() => {
+    if (mode !== "listening" || !simulated) return;
+    const timer = window.setTimeout(() => {
+      setText(SAMPLE_QUESTION);
+      setMode("heard");
+    }, 2600);
+    return () => window.clearTimeout(timer);
+  }, [mode, simulated]);
 
   useEffect(() => {
-    if (mode !== "type") return;
+    if (mode !== "typing") return;
     const el = inputRef.current;
     if (!el) return;
     el.focus();
@@ -66,19 +112,35 @@ export function AskStep({ initialMode, initialText, onContinue, onClose }: AskSt
     el.style.height = `${el.scrollHeight}px`;
   }, [text, mode]);
 
-  const question = tidyQuestion(text);
-  const submit = () => {
-    if (!question) return;
-    abortSpeech();
-    onContinue(question);
+  const listen = () => {
+    setSimulated(false);
+    if (!startSpeech()) {
+      setBlockedBy("speech");
+      setMode("blocked");
+      return;
+    }
+    setMode("listening");
   };
 
-  const switchTo = (next: "voice" | "type") => {
-    abortSpeech();
-    setNotice(null);
-    if (next === "voice") setText("");
-    setMode(next);
+  const listenToSample = () => {
+    setSimulated(true);
+    setMode("listening");
   };
+
+  const cancelListening = () => {
+    abortSpeech();
+    setSimulated(false);
+    setMode("choose");
+  };
+
+  const type = (value = text) => {
+    abortSpeech();
+    setText(value);
+    setMode("typing");
+  };
+
+  const question = tidyQuestion(text);
+  const submit = () => question && onContinue(question);
 
   const applyStarter = (starter: string) => {
     setText(`${starter} `);
@@ -93,106 +155,196 @@ export function AskStep({ initialMode, initialText, onContinue, onClose }: AskSt
     <>
       <div className={flow.topbar}>
         <IconButton icon="close" label="Close" onClick={onClose} />
-        {mode === "voice" ? (
-          <Button variant="text" size="sm" icon="keyboard" onClick={() => switchTo("type")}>
-            Type instead
+        {mode === "typing" && speech.supported && (
+          <Button variant="text" size="sm" icon="mic" onClick={listen}>
+            Speak instead
           </Button>
-        ) : (
-          speech.supported && (
-            <Button variant="text" size="sm" icon="mic" onClick={() => switchTo("voice")}>
-              Say it instead
-            </Button>
-          )
         )}
       </div>
 
-      {mode === "voice" ? (
-        <div className={`${flow.content} ${styles.voice}`}>
-          <p className={`${flow.label} ${flow.enter}`}>
-            {speech.listening ? "Say your question" : text ? "Your question" : "Tap the microphone to say your question"}
-          </p>
-          <button
-            type="button"
-            className={`${styles.spoken} ${flow.enter}`}
-            onClick={() => text && switchTo("type")}
-            aria-label={text ? `${text}. Tap to edit.` : undefined}
-            tabIndex={text ? 0 : -1}
-          >
-            {text ? (
-              <span className={`${flow.question} ${flow.questionXL}`}>
-                {speech.listening ? speech.finalText : text}
-                {speech.listening && speech.interimText && (
-                  <span className={styles.interim}> {speech.interimText}</span>
-                )}
-              </span>
-            ) : (
-              <span className={`serif ${flow.questionXL} ${styles.placeholder}`}>What are three things…</span>
-            )}
-          </button>
-          {text && !speech.listening && <p className={styles.editHint}>Tap your question to edit it</p>}
-        </div>
-      ) : (
-        <div className={`${flow.content} ${styles.typed}`}>
-          <label htmlFor="question-input" className={`${flow.label} ${flow.enter}`}>
-            What do you want to ask?
-          </label>
-          <textarea
-            id="question-input"
-            ref={inputRef}
-            className={`${flow.questionXL} ${styles.input}`}
-            value={text}
-            rows={1}
-            placeholder="What are three things…"
-            onChange={(e) => setText(e.target.value.replace(/\n/g, ""))}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit();
-              }
-            }}
-            enterKeyHint="next"
-            autoCapitalize="sentences"
-          />
-          {notice && <p className={styles.notice}>{notice}</p>}
-          {!text.trim() && (
-            <div className={`${styles.starters} ${flow.enterLate}`}>
-              <span className={styles.startersLabel}>Start with</span>
-              {STARTERS.map(([label, starter]) => (
-                <button key={label} type="button" className={styles.starter} onClick={() => applyStarter(starter)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {mode === "choose" && (
+        <>
+          <div className={`${flow.content} ${styles.content}`}>
+            <h1 className={`serif ${styles.heading}`}>What do you want to ask?</h1>
+            <p className={`${styles.lede} ${flow.enterLate}`}>Ask it the way you would ask them.</p>
+            <section className={`${styles.examples} ${flow.enterLate}`} aria-labelledby="examples-label">
+              <p id="examples-label" className={flow.label}>
+                For example
+              </p>
+              <ul>
+                {EXAMPLES.map((q) => (
+                  <li key={q}>
+                    <button type="button" className={`serif ${styles.example}`} onClick={() => onContinue(q)}>
+                      “{q}”
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+          <div className={`${flow.footer} ${styles.footer}`}>
+            <Orb label="Speak your question" onClick={listen} transitionName="ask-orb">
+              <Icon name="mic" size={36} strokeWidth={1.6} />
+            </Orb>
+            <Button variant="text" size="md" icon="keyboard" onClick={() => type()}>
+              Type instead
+            </Button>
+          </div>
+        </>
       )}
 
-      <div className={flow.footer}>
-        {mode === "voice" ? (
-          <div className={styles.voiceControls}>
-            <button
-              type="button"
-              className={`${styles.mic} ${speech.listening ? styles.micLive : ""}`}
-              onClick={() => (speech.listening ? void speech.stop() : startSpeech())}
-              aria-label={speech.listening ? "Done speaking" : "Say it again"}
+      {mode === "listening" && (
+        <>
+          <div className={`${flow.content} ${styles.content}`}>
+            <h1 className={`serif ${styles.heading} ${styles.headingQuiet}`}>What do you want to ask?</h1>
+            <p className={styles.listening} aria-live="polite">
+              <Mark live size="sm" className={speech.hearing || simulated ? styles.hearing : styles.waiting} />
+              {simulated ? "Listening · preview" : "Listening"}
+            </p>
+            <p className={`${styles.lede} ${flow.enterLate}`}>Go ahead and ask it out loud.</p>
+          </div>
+          <div className={`${flow.footer} ${styles.footer}`}>
+            <Orb
+              label="Done"
+              live
+              onClick={() => {
+                if (!simulated) return void stopSpeech();
+                setText(SAMPLE_QUESTION);
+                setMode("heard");
+              }}
+              transitionName="ask-orb"
+              aria-label="Done asking"
             >
-              <span className={styles.micRing} aria-hidden="true" />
-              <Icon name={speech.listening ? "check" : "mic"} size={28} strokeWidth={1.8} />
+              <Icon name="check" size={34} strokeWidth={1.9} />
+            </Orb>
+            <Button variant="text" size="md" onClick={cancelListening}>
+              Cancel
+            </Button>
+          </div>
+        </>
+      )}
+
+      {mode === "heard" && (
+        <>
+          <div className={`${flow.content} ${styles.content}`}>
+            <p className={`${flow.label} ${flow.enter}`}>{simulated ? "Sample question" : "Your question"}</p>
+            <h1 className={`${flow.question} ${flow.questionXL}`}>{text}</h1>
+            <button type="button" className={`${styles.again} ${flow.enterLate}`} onClick={listen}>
+              <Icon name="mic" size={16} strokeWidth={1.8} />
+              Say it again
             </button>
-            {!speech.listening && question ? (
-              <Button block onClick={submit}>
-                Continue
+          </div>
+          <div className={flow.footer}>
+            <div className={flow.footerRow}>
+              <Button variant="quiet" icon="pencil" className={styles.edit} onClick={() => type(text)}>
+                Edit
               </Button>
-            ) : (
-              <p className={styles.micHint}>{speech.listening ? "Listening. Tap when you're done." : "Tap to speak"}</p>
+              <Button onClick={() => onContinue(text)}>Use this question</Button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {mode === "missed" && (
+        <>
+          <div className={`${flow.content} ${styles.content}`}>
+            <h1 className={`serif ${styles.heading}`}>We didn’t catch that.</h1>
+            <p className={`${styles.lede} ${flow.enterLate}`}>Try again a little closer to the phone, or type it.</p>
+          </div>
+          <div className={flow.footer}>
+            <Button block icon="mic" onClick={listen}>
+              Try again
+            </Button>
+            <Button block variant="text" size="md" icon="keyboard" onClick={() => type("")}>
+              Type instead
+            </Button>
+            {canPreview && (
+              <Button block variant="text" size="sm" onClick={listenToSample}>
+                Preview with a sample question
+              </Button>
             )}
           </div>
-        ) : (
-          <Button block onClick={submit} disabled={!question}>
-            Continue
-          </Button>
-        )}
-      </div>
+        </>
+      )}
+
+      {mode === "blocked" && (
+        <>
+          <div className={`${flow.content} ${styles.content}`}>
+            <span className={`${styles.blockedIcon} ${flow.enter}`}>
+              <Icon name="mic" size={24} />
+            </span>
+            <h1 className={`serif ${styles.heading}`}>
+              {blockedBy === "mic" ? "We couldn’t access your microphone." : "Speaking isn’t available right now."}
+            </h1>
+            <p className={`${styles.lede} ${flow.enterLate}`}>
+              {blockedBy === "mic" ? "Check microphone access and try again." : "You can type your question instead."}
+            </p>
+          </div>
+          <div className={flow.footer}>
+            {blockedBy === "mic" ? (
+              <>
+                <Button block onClick={listen}>
+                  Try again
+                </Button>
+                <Button block variant="quiet" size="md" icon="keyboard" onClick={() => type("")}>
+                  Type instead
+                </Button>
+              </>
+            ) : (
+              <Button block icon="keyboard" onClick={() => type("")}>
+                Type instead
+              </Button>
+            )}
+            {canPreview && (
+              <Button block variant="text" size="md" onClick={listenToSample}>
+                Preview with a sample question
+              </Button>
+            )}
+          </div>
+        </>
+      )}
+
+      {mode === "typing" && (
+        <>
+          <div className={`${flow.content} ${styles.content} ${styles.typing}`}>
+            <label htmlFor="question-input" className={`${flow.label} ${styles.typingLabel}`}>
+              What do you want to ask?
+            </label>
+            <textarea
+              id="question-input"
+              ref={inputRef}
+              className={`${flow.questionXL} ${styles.input}`}
+              value={text}
+              rows={1}
+              placeholder="What are three things…"
+              onChange={(e) => setText(e.target.value.replace(/\n/g, ""))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              enterKeyHint="next"
+              autoCapitalize="sentences"
+            />
+            {!text.trim() && (
+              <p className={`${styles.starters} ${flow.enterLate}`}>
+                <span className={styles.startersLabel}>Start with</span>
+                {STARTERS.map(([label, starter]) => (
+                  <button key={label} type="button" className={styles.starter} onClick={() => applyStarter(starter)}>
+                    {label}
+                  </button>
+                ))}
+              </p>
+            )}
+          </div>
+          <div className={flow.footer}>
+            <Button block onClick={submit} disabled={!question}>
+              Continue
+            </Button>
+          </div>
+        </>
+      )}
     </>
   );
 }

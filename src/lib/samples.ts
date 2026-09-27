@@ -58,7 +58,7 @@ export const sampleConversations: SampleConversation[] = [
     person: "Sarah",
     question: "What are three places I shouldn't miss in Boston?",
     topic: "Travel",
-    keywords: ["boston", "places", "miss", "visit", "see", "city", "trip"],
+    keywords: ["boston", "places", "miss", "visit", "see", "trip"],
     durationSec: 104,
     seed: { daysAgo: 1, time: "18:15" },
     transcript:
@@ -86,7 +86,7 @@ export const sampleConversations: SampleConversation[] = [
     person: "Alex",
     question: "What are three things I should do in Jersey City?",
     topic: "Travel",
-    keywords: ["jersey", "visit", "places", "here", "town", "neighborhood", "weekend", "restaurants", "eat"],
+    keywords: ["jersey", "visit", "places", "miss", "here", "town", "neighborhood", "weekend", "restaurants", "eat"],
     durationSec: 134,
     seed: { daysAgo: 1, time: "12:05" },
     transcript:

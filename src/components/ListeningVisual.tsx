@@ -1,29 +1,45 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { createVoiceMeter, isSpeaking, readVoice, simulatedVoice, type Three } from "../lib/audio/voice";
 
 interface ListeningVisualProps {
   analyserRef?: RefObject<AnalyserNode | null>;
-  /** Breathe with a synthetic voice when no microphone is in use (preview). */
+  /** Move with a stand-in voice when no microphone is in use (preview). */
   simulate?: boolean;
+  paused?: boolean;
+  /** Called when someone starts or stops speaking (with a little patience for breaths). */
+  onSpeakingChange?: (speaking: boolean) => void;
   size?: number;
 }
 
 const EMBER = "194, 74, 38";
-const HALOS = 3;
-
-function clamp(v: number, lo = 0, hi = 1) {
-  return Math.min(hi, Math.max(lo, v));
-}
+/** At rest the forms take the proportions of the 3 Things mark: short, tall, medium. */
+const REST: Three = [0.2, 0.34, 0.27];
+const PEAK: Three = [0.78, 0.96, 0.86];
+const WIDTH = 0.094;
+const GAP = 0.1;
+/** A breath between words shouldn't count as silence. */
+const SPEAKING_HOLD_MS = 900;
 
 /**
- * A warm presence that breathes while someone talks.
+ * Three vertical forms that listen.
  *
- * One ember core and three soft halos. The halos follow the voice with a little
- * lag each, so sound ripples outward, and their edges drift with a faint
- * three-lobed wobble. In silence it keeps breathing, so it never looks dead.
- * Deliberately not a waveform: nothing here suggests words are being counted.
+ * Each follows its own part of the voice (warmth, vowels, detail), on a soft
+ * spring, so speech moves them unevenly the way a real voice does. In silence
+ * they settle into the 3 Things mark and breathe. Nothing here looks like a
+ * waveform editor, and nothing suggests words are being counted.
  */
-export function ListeningVisual({ analyserRef, simulate = false, size = 300 }: ListeningVisualProps) {
+export function ListeningVisual({
+  analyserRef,
+  simulate = false,
+  paused = false,
+  onSpeakingChange,
+  size = 232,
+}: ListeningVisualProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pausedRef = useRef(paused);
+  const speakingCallback = useRef(onSpeakingChange);
+  pausedRef.current = paused;
+  speakingCallback.current = onSpeakingChange;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -36,80 +52,66 @@ export function ListeningVisual({ analyserRef, simulate = false, size = 300 }: L
     ctx.scale(dpr, dpr);
 
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    const c = size / 2;
-    const core = size * 0.17;
-    const step = size * 0.085;
-    const levels = new Array(HALOS + 1).fill(0);
-    let buffer: Float32Array<ArrayBuffer> | null = null;
+    const meter = createVoiceMeter();
+    const width = size * WIDTH;
+    const gap = size * GAP;
+    const left = (size - (width * 3 + gap * 2)) / 2;
+
+    const height = REST.map((r) => r * size) as Three;
+    const velocity: Three = [0, 0, 0];
+    let alpha = 1;
+    let lastVoice = -Infinity;
+    let speaking = false;
     let frame = 0;
-    const t0 = performance.now();
-
-    function voiceLevel(t: number): number {
-      const analyser = analyserRef?.current;
-      if (analyser) {
-        if (!buffer || buffer.length !== analyser.fftSize) buffer = new Float32Array(analyser.fftSize);
-        analyser.getFloatTimeDomainData(buffer);
-        let sum = 0;
-        for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
-        const rms = Math.sqrt(sum / buffer.length);
-        return clamp(Math.sqrt(rms) * 2.4 - 0.14);
-      }
-      if (simulate) {
-        // Phrases of speech with natural pauses between them.
-        const phrase = (Math.sin(t * 0.55) + Math.sin(t * 0.23 + 1.7)) * 0.5;
-        const speaking = phrase > -0.35 ? 1 : 0;
-        const syllables = 0.5 + 0.5 * Math.sin(t * 9.1) * Math.sin(t * 3.7 + 0.4);
-        return clamp(speaking * (0.25 + syllables * 0.45));
-      }
-      return 0;
-    }
-
-    function blob(radius: number, wobble: number, t: number, seed: number) {
-      ctx!.beginPath();
-      const points = 72;
-      for (let p = 0; p <= points; p++) {
-        const a = (p / points) * Math.PI * 2;
-        const r =
-          radius +
-          wobble * (Math.sin(3 * a + t * 0.9 + seed * 1.3) * 0.62 + Math.sin(2 * a - t * 0.65 + seed) * 0.38);
-        const x = c + Math.cos(a) * r;
-        const y = c + Math.sin(a) * r;
-        if (p === 0) ctx!.moveTo(x, y);
-        else ctx!.lineTo(x, y);
-      }
-      ctx!.closePath();
-    }
+    let last = performance.now();
+    const t0 = last;
 
     function draw(now: number) {
+      const dt = Math.min((now - last) / 1000, 1 / 30);
+      last = now;
       const t = (now - t0) / 1000;
-      const target = voiceLevel(t);
+      const isPaused = pausedRef.current;
 
-      // Each halo follows the one inside it, so sound travels outward.
-      for (let i = 0; i <= HALOS; i++) {
-        const source = i === 0 ? target : levels[i - 1];
-        const rate = source > levels[i] ? 0.32 - i * 0.05 : 0.05 - i * 0.008;
-        levels[i] += (source - levels[i]) * rate;
+      const analyser = analyserRef?.current;
+      const bands: Three = isPaused
+        ? [0, 0, 0]
+        : analyser
+          ? readVoice(analyser, meter)
+          : simulate
+            ? simulatedVoice(t)
+            : [0, 0, 0];
+
+      if (!isPaused && isSpeaking(bands)) lastVoice = now;
+      const nowSpeaking = now - lastVoice < SPEAKING_HOLD_MS;
+      if (nowSpeaking !== speaking) {
+        speaking = nowSpeaking;
+        speakingCallback.current?.(speaking);
       }
+
+      const overall = (bands[0] + bands[1] + bands[2]) / 3;
+      const stiffness = reduce ? 220 : 150;
+      const damping = reduce ? 30 : 16;
 
       ctx!.clearRect(0, 0, size, size);
+      alpha += ((isPaused ? 0.32 : 1) - alpha) * Math.min(1, dt * 6);
+      ctx!.fillStyle = `rgba(${EMBER}, ${alpha})`;
 
-      for (let i = HALOS; i >= 1; i--) {
-        const breath = (Math.sin(t * ((Math.PI * 2) / 4.6) - i * 0.7) + 1) / 2;
-        const radius = core + i * step + breath * 3 + levels[i] * (6 + i * 6);
-        const wobble = reduce ? 0 : 1 + levels[i] * 3.4;
-        blob(radius, wobble, t, i);
-        ctx!.fillStyle = `rgba(${EMBER}, ${[0, 0.15, 0.095, 0.06][i]})`;
+      for (let i = 0; i < 3; i++) {
+        const level = Math.min(1, bands[i] * 0.62 + overall * 0.5);
+        const breath = reduce || isPaused ? 0 : Math.sin(t * ((Math.PI * 2) / 4.4) + i * 0.9) * size * 0.012;
+        const target = (REST[i] + level * (PEAK[i] - REST[i])) * size + breath;
+
+        const accel = stiffness * (target - height[i]) - damping * velocity[i];
+        velocity[i] += accel * dt;
+        height[i] += velocity[i] * dt;
+        const h = Math.max(width, Math.min(size, height[i]));
+
+        const x = left + i * (width + gap);
+        const y = (size - h) / 2;
+        ctx!.beginPath();
+        ctx!.roundRect(x, y, width, h, width / 2);
         ctx!.fill();
       }
-
-      const coreBreath = (Math.sin(t * ((Math.PI * 2) / 4.6)) + 1) / 2;
-      const coreRadius = core * (1 + coreBreath * 0.018 + levels[0] * 0.07);
-      const gradient = ctx!.createRadialGradient(c - coreRadius * 0.3, c - coreRadius * 0.35, 0, c, c, coreRadius);
-      gradient.addColorStop(0, "rgb(214, 99, 64)");
-      gradient.addColorStop(1, `rgb(${EMBER})`);
-      blob(coreRadius, reduce ? 0 : 0.6 + levels[0] * 1.6, t, 0);
-      ctx!.fillStyle = gradient;
-      ctx!.fill();
 
       frame = requestAnimationFrame(draw);
     }
@@ -122,7 +124,7 @@ export function ListeningVisual({ analyserRef, simulate = false, size = 300 }: L
     <canvas
       ref={canvasRef}
       role="img"
-      aria-label="Listening"
+      aria-label={paused ? "Paused" : "Listening"}
       style={{ width: size, height: size, display: "block" }}
     />
   );

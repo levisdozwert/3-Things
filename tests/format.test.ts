@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarDate, clock, count, fromLine, relativeDay, tidyQuestion } from "../src/lib/format";
+import { calendarDate, clock, count, fromLine, relativeDay, tidyQuestion, timer } from "../src/lib/format";
 
 describe("format", () => {
   const now = new Date("2026-09-27T15:00:00");
@@ -26,6 +26,9 @@ describe("format", () => {
 
   it("formats small numbers", () => {
     expect(clock(134)).toBe("2:14");
+    expect(timer(102)).toBe("01:42");
+    expect(timer(7)).toBe("00:07");
+    expect(timer(3725)).toBe("1:02:05");
     expect(count(1, "person", "people")).toBe("1 person");
     expect(count(8, "person", "people")).toBe("8 people");
   });

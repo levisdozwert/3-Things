@@ -15,13 +15,19 @@ Ask → Listen → Understand → 3 Things → Save
 | Step | Screen | What it does |
 | --- | --- | --- |
 | Ask | **Home** | One big *Ask for 3*. Type a question is the quiet alternative. Example questions sit underneath. |
-| | **Ask** | Say the question (live words appear as you speak) or type it, with "Three things… / places… / mistakes…" starters. |
-| | **Ready** | The question, held up large. An optional *Who's answering?* field. *Ready when Alex is*, a gentle consent line, then **Start listening**. |
-| Listen | **Listening** | The question, a breathing ember presence driven by the live microphone level, a timer and one Stop button. No transcript on screen, on purpose. |
+| | **Ask** | *What do you want to ask?* Nothing records until you choose. **Speak your question** is the main action; the screen shows only that it's listening, never your words as you say them. Afterwards the question appears once, with **Use this question** or **Edit**. **Type instead** gives a minimal, large-serif input with **Continue**. |
+| | **Who** | The question, settled. *Who are you asking?* **Add their name** (a first name is enough) or **Skip for now**. With a name, the result later reads *3 Things from Jason*. |
+| | **Ready** | The question in quotes, *Ready when Jason is* (or *they are*), *Let them answer naturally…*, the one-line consent reminder, and the strongest button in the app: **Start listening**. Its three marks grow into the listening screen's three forms. |
+| Listen | **Listening** | Focus mode. *Listening to Jason*, the question, three vertical forms that respond to the voice, one line of copy, and Pause, Stop and a quiet `01:42` timer. No transcript. After six seconds untouched, the controls fade back. In silence, *Take your time.*, later *Still listening.*, and it never stops on its own. |
+| | **Got it.** | Stop gives a small haptic tap where the phone supports it. The forms settle back into the mark and the screen says *Got it.*, then moves on to *Finding the three things*. |
 | Understand | **Processing** | *Finding the three things*, with the status cycling *Listening back → Finding the main ideas → Keeping the context → Making it clear*. Three empty positions wait for the answers. |
 | 3 Things | **Review** | *Did we get their 3 right?* The things appear 1, 2, 3 in sequence. **Looks right** saves in one tap. **Edit** and **Listen back** are there when needed. |
 | | **Edit** | Change a headline or explanation, reorder, remove, or add something they said. |
 | Save | **Saved** | A keepsake card: question, *3 Things from Alex*, the three headlines and *Recorded Sep 27*. |
+
+The recording never interrupts the conversation. If someone gives two things or ten, tells a story, changes their mind or answers a follow-up question from the person asking, the app just keeps listening. Sorting that out happens afterwards (see the editor's brief below).
+
+Problems get one plain sentence and one way forward: *We couldn't access your microphone. Check microphone access and try again.*, *We couldn't find a microphone.*, *The recording stopped.*, *We didn't catch that.*
 
 Plus **Library** (*Your 3 Things*: search across people, questions and things, grouped by This week / Earlier) and **You** (profile, listening settings, export, and a short explanation of how 3 Things listens). Navigation is three tabs: Home, Library, You.
 
@@ -69,15 +75,16 @@ server/
 src/
   App.tsx              Routes: / · /library · /library/:id · /you · /ask
   styles/              tokens.css (color, type, space, motion), base.css, transitions.css
-  components/          Mark (the three-stroke motif), ListeningVisual, ThingList, ThingsEditor,
-                       SavedCard, AudioPlayer, Sheet, BottomNav, Avatar, Button, Toggle, Icon
+  components/          Mark (the three-stroke motif), ListeningVisual (the three listening forms), Orb,
+                       ThingList, ThingsEditor, SavedCard, AudioPlayer, Sheet, BottomNav, Avatar, Button, Toggle, Icon
   screens/
     HomeScreen, LibraryScreen, DetailScreen, YouScreen
     capture/           CaptureFlow (the state machine) and one component per step
   lib/
     store.tsx          Saved conversations and settings (localStorage)
     samples.ts         Sample conversations: realistic, messy transcripts with grounded things
-    audio/             useRecorder (MediaRecorder + analyser), useSpeechRecognition, audioStore (IndexedDB)
+    audio/             useRecorder (record, pause, resume), voice.ts (three voice bands with adaptive
+                       noise floors), useSpeechRecognition, audioStore (IndexedDB)
     distill/           contract.ts, grounding.ts, client.ts (live vs. preview)
 tests/                 Vitest
 ```
@@ -89,8 +96,8 @@ Everything stays on the device for now: saved conversations in `localStorage`, r
 - **Paper, ink and one ember.** Warm ivory `#f8f4ec`, near-black ink `#1c1916`, warm grays, and a single terracotta-vermilion accent `#c24a26`. The accent goes on the thing to press, the numbers 1 2 3, and the listening presence. Nowhere else.
 - **Editorial type.** Questions are set in *Fraunces* (soft, warm serif, optical sizes). People's things are set in *Instrument Sans*, readable and precise. Human names, questions and ideas dominate; metadata stays quiet.
 - **Composition over containers.** Hairlines, whitespace and hierarchy do the work. The saved keepsake is the only real card.
-- **The number three, quietly.** The three-stroke mark (a voice level that is also three things), the three halos around the listening core, the three-lobed drift in their edges, the three processing positions that become the answers, and the three tabs.
-- **Motion that means something.** View transitions carry the question from the Ready screen to the top of Listening, Processing and Review, and hold the 1, 2, 3 positions in place while they fill. Answers reveal in sequence. Everything respects `prefers-reduced-motion`.
+- **The number three, quietly.** The three-stroke mark (a voice level that is also three things), the three listening forms that grow out of it, the three processing positions that become the answers, and the three tabs.
+- **Motion that means something.** View transitions carry the question through every step, grow the three marks on *Start listening* into the listening forms, settle them back into the mark on *Got it.*, and hold the 1, 2, 3 positions in place while they fill. Forward steps drift in from the right, Back from the left. Everything respects `prefers-reduced-motion`.
 
 ## Deliberately not built yet
 

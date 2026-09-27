@@ -104,3 +104,99 @@
     opacity: 1;
   }
 }
+
+/* "Got it." — the first moment after Stop. */
+.got {
+  align-items: center;
+  text-align: center;
+  padding-bottom: 0;
+}
+
+.recorded {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  font-weight: 560;
+  letter-spacing: 0.01em;
+  color: var(--ink-3);
+}
+
+.recordedDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+
+.gotQuestion {
+  margin: 12px auto 0;
+  max-width: 17em;
+  font-size: 1.5rem;
+  line-height: 1.28;
+  letter-spacing: -0.016em;
+  color: var(--ink-3);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 48;
+  text-wrap: balance;
+  transition: color var(--t-slow) var(--ease-soft);
+}
+
+.gotStage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding-bottom: 12vh;
+}
+
+/* The listening forms, settled back into the proportions of the mark. */
+.forms {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  height: 80px;
+  view-transition-name: voice-forms;
+}
+
+.forms span {
+  width: 14px;
+  border-radius: 7px;
+  background: var(--ember);
+  animation: settle 700ms var(--ease-out) both;
+}
+
+.forms span:nth-child(1) {
+  height: 36px;
+}
+.forms span:nth-child(2) {
+  height: 62px;
+  animation-delay: 60ms;
+}
+.forms span:nth-child(3) {
+  height: 49px;
+  animation-delay: 120ms;
+}
+
+@keyframes settle {
+  0% {
+    transform: scaleY(1.25);
+  }
+  55% {
+    transform: scaleY(0.92);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.gotIt {
+  font-size: var(--text-display);
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+  font-weight: 420;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 72;
+  animation: rise 600ms var(--ease-out) 180ms both;
+}

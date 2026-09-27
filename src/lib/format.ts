@@ -64,3 +64,12 @@ export function fromLine(count: number, person: string): string {
   if (!who) return `Their ${things}`;
   return `${things.charAt(0).toUpperCase()}${things.slice(1)} from ${who}`;
 }
+
+/** "01:42", or "1:02:05" past an hour. For the listening screen's quiet timer. */
+export function timer(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}

@@ -38,6 +38,12 @@ describe("closestSample", () => {
     expect(closestSample("What are three things you wish you knew earlier?").key).toBe("wish-knew-earlier");
   });
 
+  it("matches the Ask screen's example questions", () => {
+    expect(closestSample("What are three things every first-time founder should know?").key).toBe("founders");
+    expect(closestSample("What are three places I shouldn’t miss in Jersey City?").key).toBe("jersey-city");
+    expect(closestSample("What are three places I shouldn't miss in Boston?").key).toBe("boston");
+  });
+
   it("matches by the words in a typed question", () => {
     expect(closestSample("What are three places I should visit here?").key).toBe("jersey-city");
     expect(closestSample("Three books everyone should read?").key).toBe("books");

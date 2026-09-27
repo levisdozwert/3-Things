@@ -30,6 +30,51 @@
   object-position: left top;
 }
 
+/* Moving through the flow: forward drifts in from the right, back from the left. */
+:root[data-nav="forward"]::view-transition-old(root) {
+  animation: 200ms var(--ease-soft) both vt-out-left;
+}
+:root[data-nav="forward"]::view-transition-new(root) {
+  animation: 380ms var(--ease-out) 40ms both vt-in-right;
+}
+:root[data-nav="back"]::view-transition-old(root) {
+  animation: 200ms var(--ease-soft) both vt-out-right;
+}
+:root[data-nav="back"]::view-transition-new(root) {
+  animation: 380ms var(--ease-out) 40ms both vt-in-left;
+}
+
+/* The three forms and the ember button take a little longer: they are the thread through the flow. */
+::view-transition-group(voice-forms),
+::view-transition-group(ask-orb) {
+  animation-duration: 560ms;
+}
+
+@keyframes vt-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+}
+@keyframes vt-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+}
+@keyframes vt-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+@keyframes vt-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+}
+
 @keyframes vt-fade-out {
   to {
     opacity: 0;

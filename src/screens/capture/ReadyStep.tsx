@@ -1,67 +1,60 @@
-import { Button, IconButton } from "../../components/Button";
+import { IconButton } from "../../components/Button";
+import { Orb } from "../../components/Orb";
 import flow from "./Flow.module.css";
 import styles from "./ReadyStep.module.css";
 
 interface ReadyStepProps {
   question: string;
   person: string;
-  onPersonChange: (name: string) => void;
   consentReminder: boolean;
   starting: boolean;
-  onEditQuestion: () => void;
   onStart: () => void;
-  onClose: () => void;
+  onBack: () => void;
 }
 
-/** The question, held up for both people to see. Then: listen. */
-export function ReadyStep({
-  question,
-  person,
-  onPersonChange,
-  consentReminder,
-  starting,
-  onEditQuestion,
-  onStart,
-  onClose,
-}: ReadyStepProps) {
+/** The pause before a good answer. One thing to do: start listening. */
+export function ReadyStep({ question, person, consentReminder, starting, onStart, onBack }: ReadyStepProps) {
   const name = person.trim();
 
   return (
     <>
       <div className={flow.topbar}>
-        <IconButton icon="close" label="Close" onClick={onClose} />
+        <IconButton icon="back" label="Back" onClick={onBack} />
       </div>
 
       <div className={`${flow.content} ${styles.content}`}>
-        <p className={`${flow.label} ${flow.enter}`}>Your question</p>
-        <h1 className={`${flow.question} ${flow.questionXL}`}>{question}</h1>
-        <button type="button" className={`${styles.edit} ${flow.enterLate}`} onClick={onEditQuestion}>
-          Change question
-        </button>
+        <p className={`${flow.question} ${styles.question}`}>“{question}”</p>
 
-        <label className={`${styles.who} ${flow.enterLate}`}>
-          <span className={flow.label}>Who’s answering?</span>
-          <input
-            className={styles.whoInput}
-            value={person}
-            onChange={(e) => onPersonChange(e.target.value)}
-            placeholder="Their name (optional)"
-            autoComplete="off"
-            autoCapitalize="words"
-            enterKeyHint="done"
-            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-          />
-        </label>
+        <div className={styles.center}>
+          <h1 className={`serif ${styles.ready} ${flow.enter}`}>
+            {name ? (
+              <>
+                Ready when <span className={styles.name}>{name}</span> is
+              </>
+            ) : (
+              "Ready when they are"
+            )}
+          </h1>
+          <p className={`${styles.helper} ${flow.enterLate}`}>
+            Let them answer naturally. They don’t need to organize their thoughts into exactly three points.
+          </p>
+        </div>
       </div>
 
       <div className={`${flow.footer} ${styles.footer}`}>
-        <p className={`serif ${styles.ready}`}>{name ? `Ready when ${name} is` : "Ready when they are"}</p>
         {consentReminder && (
-          <p className={styles.consent}>Make sure everyone speaking is comfortable being recorded.</p>
+          <p className={styles.consent}>
+            <span className={styles.consentDot} aria-hidden="true" />
+            Make sure everyone speaking is comfortable being recorded.
+          </p>
         )}
-        <Button block icon="mic" onClick={onStart} disabled={starting}>
-          Start listening
-        </Button>
+        <Orb label="Start listening" onClick={onStart} disabled={starting} transitionName="voice-forms">
+          <span className={styles.marks} aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        </Orb>
       </div>
     </>
   );

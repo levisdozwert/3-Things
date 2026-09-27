@@ -6,29 +6,31 @@ import type { Draft } from "../../components/ThingsEditor";
 import { saveRecording } from "../../lib/audio/audioStore";
 import { useRecorder } from "../../lib/audio/useRecorder";
 import { useSpeechRecognition } from "../../lib/audio/useSpeechRecognition";
-import { findThreeThings, NothingHeardError } from "../../lib/distill/client";
+import { detectMode, findThreeThings, NothingHeardError } from "../../lib/distill/client";
 import { newId, tidyQuestion } from "../../lib/format";
 import { useStore } from "../../lib/store";
-import { withTransition } from "../../lib/transition";
+import { withTransition, type Direction } from "../../lib/transition";
 import type { Capture, Recording } from "../../lib/types";
 import { AskStep } from "./AskStep";
 import { EditStep } from "./EditStep";
 import flow from "./Flow.module.css";
-import { ListeningStep } from "./ListeningStep";
+import { ListeningStep, type ListeningProblem } from "./ListeningStep";
 import { ProblemStep, type Problem } from "./ProblemStep";
 import { ProcessingStep } from "./ProcessingStep";
 import { ReadyStep } from "./ReadyStep";
 import { ReviewStep } from "./ReviewStep";
 import { SavedStep } from "./SavedStep";
+import { WhoStep } from "./WhoStep";
 
-type Step = "ask" | "ready" | "listening" | "processing" | "review" | "edit" | "saved" | "problem";
+type Step = "ask" | "who" | "ready" | "listening" | "processing" | "review" | "edit" | "saved" | "problem";
 
-/** Long enough for "Finding the three things" to read as care, not delay. */
-const MIN_PROCESSING_MS = 3600;
-const MAX_RECORDING_SEC = 10 * 60;
+/** Long enough for "Got it." and "Finding the three things" to read as care, not delay. */
+const MIN_PROCESSING_MS = 4800;
+/** A safety net for a phone left recording, not a limit on conversation. */
+const MAX_RECORDING_SEC = 30 * 60;
 
 /**
- * Ask → Listen → Understand → 3 Things → Save.
+ * Ask → Who → Ready → Listen → Understand → 3 Things → Save.
  * One screen at a time, with the question carried through every step.
  */
 export function CaptureFlow() {
@@ -40,15 +42,18 @@ export function CaptureFlow() {
   const answer = useSpeechRecognition({ continuous: true });
 
   const initialQuestion = tidyQuestion(params.get("q") ?? "");
-  const [step, setStep] = useState<Step>(initialQuestion ? "ready" : "ask");
+  const [step, setStep] = useState<Step>(initialQuestion ? "who" : "ask");
   const [askMode, setAskMode] = useState<"voice" | "type">(params.get("type") ? "type" : "voice");
   const [question, setQuestion] = useState(initialQuestion);
   const [person, setPerson] = useState("");
 
   const [starting, setStarting] = useState(false);
-  const [blocked, setBlocked] = useState<"denied" | "unavailable" | null>(null);
+  const [listenProblem, setListenProblem] = useState<ListeningProblem | null>(null);
   const [simulated, setSimulated] = useState(false);
   const [simElapsed, setSimElapsed] = useState(0);
+  const [simPaused, setSimPaused] = useState(false);
+  const [canPreview, setCanPreview] = useState(false);
+  const [stoppedAt, setStoppedAt] = useState<number | null>(null);
 
   const [recording, setRecording] = useState<Recording | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -64,26 +69,33 @@ export function CaptureFlow() {
   // One stop per recording, however many times Stop is tapped.
   const stopping = useRef(false);
 
-  const go = useCallback((next: Step) => withTransition(() => setStep(next)), []);
+  const go = useCallback(
+    (next: Step, direction: Direction = "forward") => withTransition(() => setStep(next), direction),
+    [],
+  );
   const leave = useCallback(() => navigate("/", { viewTransition: true }), [navigate]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [step]);
 
+  useEffect(() => {
+    void detectMode().then((mode) => setCanPreview(mode === "preview"));
+  }, []);
+
   // ── Listening ──────────────────────────────────────────────
 
   const beginRecording = async () => {
     stopping.current = false;
     setStarting(true);
-    setBlocked(null);
+    setListenProblem(null);
     setSimulated(false);
     const status = await recorder.start();
     setStarting(false);
     if (status === "recording") {
       answer.start();
     } else {
-      setBlocked(status === "denied" ? "denied" : "unavailable");
+      setListenProblem(status === "denied" ? "denied" : status === "failed" ? "failed" : "unavailable");
     }
   };
 
@@ -95,17 +107,39 @@ export function CaptureFlow() {
 
   const previewWithoutMic = () => {
     stopping.current = false;
-    setBlocked(null);
+    setListenProblem(null);
     setSimulated(true);
+    setSimPaused(false);
     setSimElapsed(0);
   };
 
   useEffect(() => {
-    if (step !== "listening" || !simulated) return;
-    const started = performance.now();
-    const timer = window.setInterval(() => setSimElapsed(Math.floor((performance.now() - started) / 1000)), 250);
+    if (step !== "listening" || !simulated || simPaused) return;
+    const timer = window.setInterval(() => setSimElapsed((s) => s + 0.25), 250);
     return () => window.clearInterval(timer);
-  }, [step, simulated]);
+  }, [step, simulated, simPaused]);
+
+  // The microphone went away mid-conversation.
+  const { abort: abortAnswer } = answer;
+  useEffect(() => {
+    if (step !== "listening" || recorder.status !== "failed") return;
+    abortAnswer();
+    setListenProblem("failed");
+  }, [step, recorder.status, abortAnswer]);
+
+  const paused = simulated ? simPaused : recorder.status === "paused";
+
+  const pauseListening = () => {
+    if (simulated) return setSimPaused(true);
+    recorder.pause();
+    answer.pause();
+  };
+
+  const resumeListening = () => {
+    if (simulated) return setSimPaused(false);
+    recorder.resume();
+    answer.resume();
+  };
 
   const findThings = useCallback(
     async (rec: Recording, heardFrom: string) => {
@@ -140,7 +174,10 @@ export function CaptureFlow() {
   const stopListening = useCallback(async () => {
     if (stopping.current) return;
     stopping.current = true;
-    go("processing");
+    // A small tap you can feel, where the phone supports it.
+    navigator.vibrate?.(12);
+    setStoppedAt(simulated ? simElapsed : recorder.elapsed);
+    go("processing", "none");
     let rec: Recording;
     if (simulated) {
       rec = { audio: null, durationSec: simElapsed, transcript: "", simulated: true };
@@ -222,10 +259,27 @@ export function CaptureFlow() {
           initialMode={askMode}
           initialText={question}
           onContinue={(q) => {
-            setQuestion(q);
-            go("ready");
+            setQuestion(tidyQuestion(q));
+            go("who");
           }}
           onClose={leave}
+        />
+      )}
+
+      {step === "who" && (
+        <WhoStep
+          question={question}
+          person={person}
+          onPersonChange={setPerson}
+          onContinue={() => go("ready")}
+          onSkip={() => {
+            setPerson("");
+            go("ready");
+          }}
+          onBack={() => {
+            setAskMode("type");
+            go("ask", "back");
+          }}
         />
       )}
 
@@ -233,34 +287,40 @@ export function CaptureFlow() {
         <ReadyStep
           question={question}
           person={person}
-          onPersonChange={setPerson}
           consentReminder={settings.consentReminder}
           starting={starting}
-          onEditQuestion={() => {
-            setAskMode("type");
-            go("ask");
-          }}
           onStart={startListening}
-          onClose={leave}
+          onBack={() => go("who", "back")}
         />
       )}
 
       {step === "listening" && (
         <ListeningStep
           question={question}
+          person={person}
           elapsed={simulated ? simElapsed : recorder.elapsed}
           analyserRef={recorder.analyserRef}
           simulated={simulated}
-          blocked={blocked}
+          paused={paused}
+          problem={listenProblem}
           starting={starting}
+          canPreview={canPreview}
           onStop={() => void stopListening()}
-          onCancel={() => (blocked ? leave() : setConfirm("recording"))}
+          onPause={pauseListening}
+          onResume={resumeListening}
+          onCancel={() => (listenProblem ? leave() : setConfirm("recording"))}
           onRetry={() => void beginRecording()}
-          onContinueWithoutMic={previewWithoutMic}
+          onPreviewWithoutMic={previewWithoutMic}
         />
       )}
 
-      {step === "processing" && <ProcessingStep question={question} onCancel={() => setConfirm("recording")} />}
+      {step === "processing" && (
+        <ProcessingStep
+          question={question}
+          durationSec={stoppedAt ?? recording?.durationSec ?? null}
+          onCancel={() => setConfirm("recording")}
+        />
+      )}
 
       {step === "review" && draft && (
         <ReviewStep
@@ -284,7 +344,7 @@ export function CaptureFlow() {
             setDraft(value);
             void save(value, true);
           }}
-          onCancel={() => go(manual ? "problem" : "review")}
+          onCancel={() => go(manual ? "problem" : "review", "back")}
         />
       )}
 
@@ -300,7 +360,7 @@ export function CaptureFlow() {
           }}
           onRecordAgain={() => {
             setRecording(null);
-            go("ready");
+            go("ready", "back");
           }}
           onWriteYourself={writeYourself}
           onClose={() => setConfirm("result")}

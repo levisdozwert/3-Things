@@ -1,26 +1,65 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { IconButton } from "../../components/Button";
+import { timer } from "../../lib/format";
+import { withTransition } from "../../lib/transition";
 import flow from "./Flow.module.css";
 import styles from "./ProcessingStep.module.css";
 
 const STAGES = ["Listening back", "Finding the main ideas", "Keeping the context", "Making it clear"];
 const STAGE_MS = 950;
+/** How long "Got it." holds before the work begins to show. */
+const GOT_IT_MS = 1500;
 
 interface ProcessingStepProps {
   question: string;
+  /** How long the conversation was, once the recording has closed. */
+  durationSec: number | null;
   onCancel: () => void;
 }
 
-/** Calm, human, short. Three positions wait for the three things. */
-export function ProcessingStep({ question, onCancel }: ProcessingStepProps) {
+/**
+ * First a confident acknowledgement, "Got it.", with the three forms settling
+ * back into the mark. Then, calmly, "Finding the three things".
+ */
+export function ProcessingStep({ question, durationSec, onCancel }: ProcessingStepProps) {
+  const [phase, setPhase] = useState<"got" | "finding">("got");
   const [stage, setStage] = useState(0);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    const timeout = window.setTimeout(() => withTransition(() => setPhase("finding")), GOT_IT_MS);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "finding") return;
+    const interval = window.setInterval(() => {
       setStage((s) => Math.min(s + 1, STAGES.length - 1));
     }, STAGE_MS);
-    return () => window.clearInterval(timer);
-  }, []);
+    return () => window.clearInterval(interval);
+  }, [phase]);
+
+  if (phase === "got") {
+    return (
+      <>
+        <div className={flow.topbar} />
+        <div className={`${flow.content} ${styles.got}`}>
+          <p className={styles.recorded}>
+            <span className={styles.recordedDot} aria-hidden="true" />
+            {durationSec === null ? "Stopped" : `Recorded · ${timer(durationSec)}`}
+          </p>
+          <p className={`${flow.question} ${styles.gotQuestion}`}>{question}</p>
+          <div className={styles.gotStage}>
+            <span className={styles.forms} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+            <h1 className={`serif ${styles.gotIt}`}>Got it.</h1>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

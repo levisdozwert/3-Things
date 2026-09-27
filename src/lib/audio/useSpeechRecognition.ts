@@ -22,6 +22,8 @@ interface Recognition {
   onresult: ((e: RecognitionEvent) => void) | null;
   onerror: ((e: RecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
+  onspeechstart: (() => void) | null;
+  onspeechend: (() => void) | null;
   start(): void;
   stop(): void;
   abort(): void;
@@ -36,7 +38,8 @@ function getCtor(): RecognitionCtor | null {
 
 export const speechSupported = getCtor() !== null;
 
-const FATAL = new Set(["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"]);
+/** Errors that mean speech recognition can't work here, as opposed to a quiet moment. */
+export const BLOCKING_ERRORS = new Set(["not-allowed", "service-not-allowed", "audio-capture", "language-not-supported"]);
 
 interface Options {
   /** Keep listening through pauses (the answer) rather than stopping at the first one (the question). */
@@ -44,17 +47,19 @@ interface Options {
   lang?: string;
 }
 
+const join = (...parts: string[]) => parts.join(" ").replace(/\s+/g, " ").trim();
+
 /**
  * Speech to text in the browser.
  *
- * For the question, the words are shown as the user speaks — it's their own sentence.
- * For the answer, the transcript is collected quietly and only ever used to find the
- * three things. The listening screen never shows it.
+ * Neither the question nor the answer is shown word by word while someone
+ * speaks. The question is shown once, afterwards, so the asker can check it.
+ * The answer is collected quietly and only ever used to find the three things.
  */
 export function useSpeechRecognition({ continuous, lang }: Options) {
   const [listening, setListening] = useState(false);
-  const [finalText, setFinalText] = useState("");
-  const [interimText, setInterimText] = useState("");
+  const [hearing, setHearing] = useState(false);
+  const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const recognitionRef = useRef<Recognition | null>(null);
@@ -63,9 +68,16 @@ export function useSpeechRecognition({ continuous, lang }: Options) {
   const interimRef = useRef("");
   const endWaitersRef = useRef<(() => void)[]>([]);
 
+  const settle = useCallback(() => {
+    recognitionRef.current = null;
+    setListening(false);
+    setHearing(false);
+    endWaitersRef.current.splice(0).forEach((resolve) => resolve());
+  }, []);
+
   const begin = useCallback(() => {
     const Ctor = getCtor();
-    if (!Ctor) return;
+    if (!Ctor) return false;
     const recognition = new Ctor();
     recognition.continuous = continuous;
     recognition.interimResults = true;
@@ -75,30 +87,27 @@ export function useSpeechRecognition({ continuous, lang }: Options) {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
-        const text = result[0].transcript;
-        if (result.isFinal) {
-          finalRef.current = `${finalRef.current} ${text}`.replace(/\s+/g, " ").trim();
-        } else {
-          interim += text;
-        }
+        if (result.isFinal) finalRef.current = join(finalRef.current, result[0].transcript);
+        else interim += result[0].transcript;
       }
       interimRef.current = interim.trim();
-      setFinalText(finalRef.current);
-      setInterimText(interimRef.current);
+      setHearing(true);
+      setText(join(finalRef.current, interimRef.current));
     };
+    recognition.onspeechstart = () => setHearing(true);
+    recognition.onspeechend = () => setHearing(false);
 
     recognition.onerror = (event) => {
       if (event.error === "aborted" || event.error === "no-speech") return;
       setError(event.error);
-      if (FATAL.has(event.error)) wantRef.current = false;
+      if (BLOCKING_ERRORS.has(event.error)) wantRef.current = false;
     };
 
     recognition.onend = () => {
       if (interimRef.current) {
-        finalRef.current = `${finalRef.current} ${interimRef.current}`.trim();
+        finalRef.current = join(finalRef.current, interimRef.current);
         interimRef.current = "";
-        setFinalText(finalRef.current);
-        setInterimText("");
+        setText(finalRef.current);
       }
       // Browsers end recognition after silence or a time limit. Keep going while asked to.
       if (wantRef.current && continuous) {
@@ -109,61 +118,75 @@ export function useSpeechRecognition({ continuous, lang }: Options) {
           /* fall through to a clean end */
         }
       }
-      recognitionRef.current = null;
       wantRef.current = false;
-      setListening(false);
-      endWaitersRef.current.splice(0).forEach((resolve) => resolve());
+      settle();
     };
 
     recognitionRef.current = recognition;
     try {
       recognition.start();
       setListening(true);
+      return true;
     } catch {
       recognitionRef.current = null;
       setListening(false);
+      return false;
     }
-  }, [continuous, lang]);
+  }, [continuous, lang, settle]);
 
+  /** Starts fresh. Returns false when speech recognition isn't available. */
   const start = useCallback(() => {
     if (!getCtor()) return false;
     recognitionRef.current?.abort();
     finalRef.current = "";
     interimRef.current = "";
-    setFinalText("");
-    setInterimText("");
+    setText("");
     setError(null);
     wantRef.current = true;
-    begin();
-    return true;
+    return begin();
   }, [begin]);
+
+  const halt = useCallback(async () => {
+    wantRef.current = false;
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+    await Promise.race([
+      new Promise<void>((resolve) => {
+        endWaitersRef.current.push(resolve);
+        try {
+          recognition.stop();
+        } catch {
+          resolve();
+        }
+      }),
+      new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+    ]);
+  }, []);
 
   /** Stops listening and resolves with everything heard, including words not yet finalized. */
   const stop = useCallback(async (): Promise<string> => {
-    wantRef.current = false;
-    const recognition = recognitionRef.current;
-    if (recognition) {
-      await Promise.race([
-        new Promise<void>((resolve) => {
-          endWaitersRef.current.push(resolve);
-          try {
-            recognition.stop();
-          } catch {
-            resolve();
-          }
-        }),
-        new Promise<void>((resolve) => setTimeout(resolve, 1500)),
-      ]);
-    }
-    return `${finalRef.current} ${interimRef.current}`.replace(/\s+/g, " ").trim();
-  }, []);
+    await halt();
+    return join(finalRef.current, interimRef.current);
+  }, [halt]);
+
+  /** Stops for now, keeping what was heard. */
+  const pause = useCallback(() => {
+    void halt();
+  }, [halt]);
+
+  /** Carries on after a pause, adding to what was heard. */
+  const resume = useCallback(() => {
+    if (!getCtor()) return;
+    wantRef.current = true;
+    // If the paused session is still winding down, its end handler restarts it.
+    if (!recognitionRef.current) begin();
+  }, [begin]);
 
   const abort = useCallback(() => {
     wantRef.current = false;
     recognitionRef.current?.abort();
-    recognitionRef.current = null;
-    setListening(false);
-  }, []);
+    settle();
+  }, [settle]);
 
   useEffect(
     () => () => {
@@ -173,15 +196,5 @@ export function useSpeechRecognition({ continuous, lang }: Options) {
     [],
   );
 
-  return {
-    supported: speechSupported,
-    listening,
-    text: `${finalText} ${interimText}`.trim(),
-    finalText,
-    interimText,
-    error,
-    start,
-    stop,
-    abort,
-  };
+  return { supported: speechSupported, listening, hearing, text, error, start, stop, pause, resume, abort };
 }

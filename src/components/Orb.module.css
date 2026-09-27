@@ -1,0 +1,90 @@
+.orbButton {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  border-radius: var(--r-lg);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.orbButton:focus-visible {
+  outline-offset: 6px;
+}
+
+.orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--on-ember);
+  background: radial-gradient(circle at 35% 30%, #d66340 0%, var(--ember) 62%);
+  box-shadow:
+    0 0 0 10px rgba(194, 74, 38, 0.08),
+    0 16px 32px -20px rgba(150, 50, 20, 0.8);
+  transition:
+    transform var(--t-base) var(--ease-out),
+    box-shadow var(--t-base) var(--ease-out);
+}
+
+.lg .orb {
+  width: 104px;
+  height: 104px;
+}
+
+.md .orb {
+  width: 84px;
+  height: 84px;
+}
+
+.orbButton:hover .orb {
+  transform: scale(1.03);
+}
+
+.orbButton:active .orb {
+  transform: scale(0.95);
+  box-shadow:
+    0 0 0 6px rgba(194, 74, 38, 0.1),
+    0 10px 20px -16px rgba(150, 50, 20, 0.8);
+}
+
+.icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.label {
+  font-size: 1.0625rem;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--ember);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.live .ring {
+  animation: ring 2.4s var(--ease-out) infinite;
+}
+
+.live .ring + .ring {
+  animation-delay: 1.2s;
+}
+
+@keyframes ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.42);
+    opacity: 0;
+  }
+}
