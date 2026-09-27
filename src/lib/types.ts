@@ -46,6 +46,8 @@ export interface Settings {
   consentReminder: boolean;
   keepRecordings: boolean;
   showSamples: boolean;
+  /** A year of sample conversations, to see how a full Library feels. */
+  fullLibrary: boolean;
 }
 
 /** What the listening step hands to the rest of the flow. */

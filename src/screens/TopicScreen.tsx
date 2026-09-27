@@ -52,7 +52,7 @@ export function TopicScreen() {
 
       <ul className={rows.list}>
         {topic.conversations.map((c) => (
-          <ConversationRow key={c.id} capture={c} showThings />
+          <ConversationRow key={c.id} capture={c} showThings showTopic={false} />
         ))}
       </ul>
     </main>

@@ -6,12 +6,14 @@ import {
   listPlaces,
   listTopics,
   matchesAll,
+  mentionLine,
   queryTerms,
   searchLibrary,
   stem,
 } from "../src/lib/library";
 import { seedCaptures } from "../src/lib/samples";
 import { refreshSamples } from "../src/lib/store";
+import { yearOfConversations } from "../src/lib/yearOfConversations";
 import type { Capture } from "../src/lib/types";
 
 const library = seedCaptures(new Date("2026-09-27T20:00:00"));
@@ -75,8 +77,11 @@ describe("search", () => {
 
   it("groups Boston into people who talked about it, questions and things", () => {
     const results = searchLibrary(library, "Boston");
-    expect(results.people.map((p) => p.person.name)).toEqual(["Sarah"]);
-    expect(results.people[0].by).toBe("mention");
+    expect(results.people.map((p) => p.person.name)).toEqual(["Sarah", "Daniel"]);
+    expect(results.people.map(mentionLine)).toEqual([
+      "Told you 6 things about Boston",
+      "Mentioned Boston in a travel conversation",
+    ]);
     expect(results.questions.map((c) => c.question)).toEqual(
       expect.arrayContaining([
         "What are three places I shouldn't miss in Boston?",
@@ -84,6 +89,45 @@ describe("search", () => {
       ]),
     );
     expect(results.things.some((r) => r.thing.headline === "The courtyard at the Boston Public Library")).toBe(true);
+  });
+
+  it("answers a question with conversations, never with an answer of its own", () => {
+    expect(queryTerms("What should I do in Boston?")).toEqual(["boston"]);
+    const asked = searchLibrary(library, "What should I do in Boston?");
+    const plain = searchLibrary(library, "Boston");
+    expect(asked.subject).toBe("Boston");
+    expect(asked.questions).toEqual(plain.questions);
+    expect(asked.things).toEqual(plain.things);
+    // Every thing it shows is one somebody said, with them attached.
+    for (const { capture, thing } of asked.things) expect(capture.things).toContain(thing);
+  });
+
+  it("lists the things from a conversation about the search, each with its source", () => {
+    const { things } = searchLibrary(library, "founder");
+    const fromJason = things.filter((r) => r.capture.person === "Jason").map((r) => r.thing.headline);
+    expect(fromJason).toContain("Building too long before talking to customers");
+    expect(fromJason).toContain("Hire more slowly than you think you need to");
+  });
+
+  it("puts things that mention the search first", () => {
+    const { things } = searchLibrary(library, "Boston");
+    const firstIndirect = things.findIndex((r) => !r.direct);
+    expect(things.slice(0, firstIndirect).every((r) => r.direct)).toBe(true);
+    expect(things.slice(firstIndirect).every((r) => !r.direct)).toBe(true);
+    expect(things.slice(0, firstIndirect).map((r) => r.thing.headline)).toContain("Fly into Boston and drive up");
+  });
+
+  it("understands a person and a subject together", () => {
+    const results = searchLibrary(library, "Mom cooking");
+    expect(results.questions.map((c) => c.person)).toEqual(["Mom"]);
+    expect(results.people.map(mentionLine)).toEqual(["Told you 3 things about cooking"]);
+  });
+
+  it("says so when it has to show something broader", () => {
+    const results = searchLibrary(library, "Where can I get sushi in Boston?");
+    expect(results.broadened).toBe("Boston");
+    expect(results.questions.every((c) => c.place === "Boston")).toBe(true);
+    expect(searchLibrary(library, "sushi").broadened).toBeUndefined();
   });
 
   it("finds people by name first", () => {
@@ -110,8 +154,24 @@ describe("search", () => {
   });
 });
 
+describe("a year of conversations", () => {
+  const year = yearOfConversations(new Date("2026-09-27T20:00:00"));
+  const full = [...library, ...year];
+
+  it("holds hundreds of things from dozens of people", () => {
+    expect(new Set(year.map((c) => c.id)).size).toBe(year.length);
+    expect(full.reduce((n, c) => n + c.things.length, 0)).toBeGreaterThan(250);
+    expect(listPeople(full).length).toBeGreaterThanOrEqual(25);
+  });
+
+  it("still finds Boston across people, in passing or not", () => {
+    const names = searchLibrary(full, "Boston").people.map((p) => p.person.name);
+    expect(names).toEqual(expect.arrayContaining(["Sarah", "Tom", "Daniel"]));
+  });
+});
+
 describe("refreshSamples", () => {
-  const settings = { name: "", consentReminder: true, keepRecordings: true, showSamples: true };
+  const settings = { name: "", consentReminder: true, keepRecordings: true, showSamples: true, fullLibrary: false };
 
   it("adds new sample conversations once, and never touches the user's own", () => {
     const mine: Capture = { ...library[0], id: "mine", origin: "recording", question: "My own question?" };

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { deleteAllRecordings, deleteRecording } from "./audio/audioStore";
 import { seedCaptures } from "./samples";
+import { isYearConversation, yearOfConversations } from "./yearOfConversations";
 import type { Capture, Settings } from "./types";
 
 const STORAGE_KEY = "three-things:v1";
@@ -17,6 +18,7 @@ const defaultSettings: Settings = {
   consentReminder: true,
   keepRecordings: true,
   showSamples: true,
+  fullLibrary: false,
 };
 
 /**
@@ -111,17 +113,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setState((s) => {
       const settings = { ...s.settings, ...patch };
+      let captures = s.captures;
       // Turning samples back on restores any that were removed.
-      if (patch.showSamples && !s.captures.some((c) => c.origin === "sample")) {
-        return { ...s, captures: [...s.captures, ...seedCaptures()], settings };
+      if (patch.showSamples && !captures.some((c) => c.origin === "sample")) {
+        captures = [...captures, ...seedCaptures()];
       }
-      return { ...s, settings };
+      // The year of conversations comes and goes as a whole.
+      if (settings.fullLibrary && (patch.fullLibrary || patch.showSamples)) {
+        const have = new Set(captures.map((c) => c.id));
+        captures = [...captures, ...yearOfConversations().filter((c) => !have.has(c.id))];
+      }
+      if (patch.fullLibrary === false) captures = captures.filter((c) => !isYearConversation(c));
+      return { ...s, captures, settings };
     });
   }, []);
 
   const deleteEverything = useCallback(() => {
     void deleteAllRecordings();
-    setState((s) => ({ ...s, captures: [], settings: { ...s.settings, showSamples: false } }));
+    setState((s) => ({ ...s, captures: [], settings: { ...s.settings, showSamples: false, fullLibrary: false } }));
   }, []);
 
   const value = useMemo<Store>(() => {

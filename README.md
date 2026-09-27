@@ -41,19 +41,23 @@ Over time the Library becomes a record of what people have taught you, organized
 | --- | --- |
 | **Your 3 Things** | A quiet growth line (*You've learned 53 things from 10 people.*), then search, then an understated **Recent · People · Topics** switch. No extra tab, no streaks, no scores. |
 | **Recent** | The default. Grouped *Today*, *This week* and *Earlier*. Each row leads with the person (small initial avatar), then the question in serif, then a quiet line: topic · place · when. A **Kept close** chip filters to the conversations you bookmarked. |
-| **People** | Everyone you've asked, with how many things you've learned from them and what you talked about. No profiles, followers or social features. Unnamed conversations are counted in a footnote, never guessed. |
+| **People** | Everyone you've asked, with how many things you've learned from them and what, and where, you talked about (*Travel · Life · Boston*). No profiles, followers or social features. Unnamed conversations are counted in a footnote, never guessed. |
 | **Person** | *15 things you've learned from Jason*, the topics and places that came up, then *What you've asked, over time*: each question with its three headlines. **Ask Jason something** starts a new question with the name already filled in. |
 | **Topics** | Suggested when saved (Startup, Travel, Food, Life…), always changeable. Places sit underneath as a quiet line, not a tab. |
 | **Topic** | Every conversation about it, across people. With two or more: *Different people, different views. Each stays in their own words.* Jason's "Hire more slowly than you think you need to" and Maya's "Hire faster than feels comfortable" stay side by side, attributed and never merged into a consensus. |
-| **Search** | *Search people, questions or things.* Matches names, questions, things, their context, topics and places, with gentle word matching (*hiring* finds *hire*). Results are grouped **People**, **Questions**, **Things**, and every thing shows who said it and what was asked. When a thing matched on its context, that sentence is shown so you can see why. Opening one scrolls to it and highlights it briefly. |
+| **Search** | *Search people, questions or things.* Matches names, questions, things, their context, topics and places, with gentle word matching (*hiring* finds *hire*). Results are grouped **People**, **Questions**, **Things**, a few of each with **Show all** for the rest. People say how they came up: *Told you 6 things about Boston*, *Mentioned Boston in a travel conversation*. Things list what mentions the search first, then the rest of the conversations about it, and every thing shows who said it and what was asked. Opening one scrolls to it and highlights it briefly. |
 | **Saved detail** | The person (links to their page), date, topic (links to the topic), place, the question and the three things. **Keep close** bookmarks it; there's no separate Favorites tab. |
 | **Saved** | After saving: *Filed under Startup · Change*, a small sheet with topic suggestions and a *Where* field. |
+
+Search only ever finds what people actually told you. Ask it a question, *What should I do in Boston?*, and it looks for Boston in your conversations (question words drop out) and shows Sarah's places and Daniel's tip, with their names on them. It never writes an answer of its own. *Mom cooking* finds what Mom said about cooking. If nothing matches every word, it says so and shows what you have about the person, place or topic in the search: *Nothing mentions all of that yet. Showing what you have about Boston.* With nothing at all: *Nothing here yet. Try another word or ask someone about it.*
 
 The empty Library says *Your Library grows one conversation at a time.* and *Ask someone something worth remembering.*, with **Ask for 3** and a few example questions.
 
 Places are metadata only: they come from what the speaker actually said (a place the transcript doesn't contain is dropped by the grounding check), or from what you type in.
 
 People are grouped by name (case and spacing ignored), so "Jason" in March and "jason" in May are the same person. The sample conversations are refreshed for existing users without touching anything they've edited, kept close or deleted.
+
+To see the Library at scale, turn on **A year of conversations** in You. It adds about 75 sample conversations from 25 people (276 things in all) and takes them away again when turned off. Turn off **Sample conversations** to see the empty Library.
 
 ## How the three are chosen
 
@@ -131,6 +135,7 @@ src/
   lib/
     store.tsx          Saved conversations and settings (localStorage)
     library.ts         People, topics and places derived from conversations, and Library search
+    yearOfConversations.ts  A year of sample conversations, to preview a full Library
     samples.ts         Sample conversations: realistic, messy transcripts with grounded things
     audio/             useRecorder (record, pause, resume), voice.ts (three voice bands with adaptive
                        noise floors), useSpeechRecognition, audioStore (IndexedDB)

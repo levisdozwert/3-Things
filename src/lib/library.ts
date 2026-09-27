@@ -120,9 +120,34 @@ export function stem(term: string): string {
   return term;
 }
 
+/**
+ * Words that shape a question but don't say what it's about. "What should I do
+ * in Boston?" is a search for Boston, not for "what", "should" and "do".
+ */
+const FILLER = new Set(
+  (
+    "a an the and or but if so of to in on at for from with about into by as than then " +
+    "what what's whats which who whom whose where when why how " +
+    "should would could can can't will shall may might must " +
+    "do does did done doing go going get got " +
+    "i i'm im me my mine we us our you your yours he him his she her they them their it its " +
+    "is am are was were be been being have has had " +
+    "that this these those there here any some anything something " +
+    "three thing things say said tell told talk talked know " +
+    "best good top tip tips idea ideas advice recommend please"
+  ).split(" "),
+);
+
+/** The words that carry the meaning, as typed. Filler drops out unless nothing else is left. */
+function meaningfulWords(query: string): string[] {
+  const all = query.match(/[\p{L}\p{N}'’]+/gu) ?? [];
+  const kept = all.filter((w) => !FILLER.has(fold(w)));
+  return kept.length > 0 ? kept : all;
+}
+
 /** The query as stems. Every stem has to be found for something to match. */
 export function queryTerms(query: string): string[] {
-  return words(query).map(stem).filter(Boolean);
+  return [...new Set(meaningfulWords(query).map((w) => stem(fold(w))).filter(Boolean))];
 }
 
 /** True when every term begins a word somewhere in the text. */
@@ -130,6 +155,12 @@ export function matchesAll(text: string, terms: string[]): boolean {
   if (terms.length === 0) return false;
   const ws = words(text);
   return terms.every((term) => ws.some((w) => w.startsWith(term)));
+}
+
+/** True when at least one term begins a word in the text. */
+export function matchesAny(text: string, terms: string[]): boolean {
+  const ws = words(text);
+  return terms.some((term) => ws.some((w) => w.startsWith(term)));
 }
 
 /**
@@ -156,16 +187,26 @@ export function highlightParts(text: string, terms: string[]): { text: string; m
 
 export interface PersonResult {
   person: Person;
-  /** Found by name, or because their conversations mention the search. */
+  /** Found by name, or because what they told you is about the search. */
   by: "name" | "mention";
-  /** For "mention": how many of their conversations do. */
-  mentions: number;
+  /** How many of their conversations it came up in. */
+  conversations: number;
+  /** Things they told you about it: every thing from a conversation about it, plus single things elsewhere. */
+  things: number;
+  /** It only came up in passing, inside conversations about something else. */
+  inPassing: boolean;
+  /** The topic of that conversation, when it came up in passing exactly once. */
+  topic?: string;
+  /** What was searched for, in words, leaving out their own name. */
+  subject: string;
 }
 
 export interface ThingResult {
   capture: Capture;
   thing: Thing;
   index: number;
+  /** The thing itself mentions it, rather than the conversation it came from. */
+  direct: boolean;
 }
 
 export interface SearchResults {
@@ -173,6 +214,13 @@ export interface SearchResults {
   questions: Capture[];
   things: ThingResult[];
   terms: string[];
+  /** What was searched for, in words: "Boston", "hiring". */
+  subject: string;
+  /**
+   * When nothing matched every word, the results are about the names, places
+   * and topics in the search instead, and this says which.
+   */
+  broadened?: string;
 }
 
 function conversationText(c: Capture): string {
@@ -184,32 +232,122 @@ function thingText(t: Thing): string {
 }
 
 /**
- * Searching your own memory: who said it, what you asked, what they said.
- * Every result keeps its source.
+ * True when the search is found in the text. Words of the person's name count
+ * too ("Mom cooking"), but only alongside something they actually talked about.
  */
-export function searchLibrary(captures: Capture[], query: string): SearchResults {
-  const terms = queryTerms(query);
-  const empty = { people: [], questions: [], things: [], terms };
+function found(text: string, person: string, terms: string[]): boolean {
+  const content = words(text);
+  const name = words(person);
+  let aboutSomething = false;
+  for (const term of terms) {
+    if (content.some((w) => w.startsWith(term))) aboutSomething = true;
+    else if (!name.some((w) => w.startsWith(term))) return false;
+  }
+  return aboutSomething;
+}
+
+/**
+ * How a word should read back to the user: "Boston" as they'd write it,
+ * "hiring" in lower case. Capitalized only where the conversations capitalize
+ * it mid-sentence, or where it's a person or place.
+ */
+function asWritten(word: string, captures: Capture[]): string {
+  const target = fold(word);
+  for (const c of captures) {
+    for (const proper of [c.place ?? "", c.person]) {
+      const hit = proper.match(/[\p{L}\p{N}'’]+/gu)?.find((w) => fold(w) === target);
+      if (hit) return hit;
+    }
+  }
+  for (const c of captures) {
+    for (const text of [c.question, ...c.things.flatMap((t) => [t.headline, t.detail])]) {
+      for (const m of text.matchAll(/[\p{L}\p{N}'’]+/gu)) {
+        if (fold(m[0]) !== target || !/^\p{Lu}/u.test(m[0])) continue;
+        const before = text.slice(0, m.index).trimEnd();
+        if (before !== "" && !/[.!?:"“]$/.test(before)) return m[0];
+      }
+    }
+  }
+  return word.toLowerCase();
+}
+
+function describe(words: string[], captures: Capture[]): string {
+  return words.map((w) => asWritten(w, captures)).join(" ");
+}
+
+function search(captures: Capture[], terms: string[], typed: string[]): Omit<SearchResults, "broadened"> {
+  const subject = describe(typed, captures);
+  const empty = { people: [], questions: [], things: [], terms, subject };
   if (terms.length === 0) return empty;
 
   const sorted = [...captures].sort(newestFirst);
-  const questions = sorted.filter((c) => matchesAll(conversationText(c), terms));
-  const things = sorted.flatMap((capture) =>
-    capture.things.flatMap((thing, index) => (matchesAll(thingText(thing), terms) ? [{ capture, thing, index }] : [])),
-  );
+  const aboutIt = new Set(sorted.filter((c) => found(conversationText(c), c.person, terms)).map((c) => c.id));
+  const questions = sorted.filter((c) => aboutIt.has(c.id));
+
+  // A thing is found by its own words, or because the whole conversation was about it.
+  const direct: ThingResult[] = [];
+  const context: ThingResult[] = [];
+  for (const capture of sorted) {
+    capture.things.forEach((thing, index) => {
+      if (found(thingText(thing), capture.person, terms)) direct.push({ capture, thing, index, direct: true });
+      else if (found(`${thingText(thing)} ${conversationText(capture)}`, capture.person, terms))
+        context.push({ capture, thing, index, direct: false });
+    });
+  }
 
   const people: PersonResult[] = [];
   for (const person of listPeople(captures)) {
+    const own = typed.filter((w) => !matchesAll(person.name, [stem(fold(w))]));
+    const base = { person, subject: describe(own, captures) };
     if (matchesAll(person.name, terms)) {
-      people.push({ person, by: "name", mentions: 0 });
+      people.push({ ...base, by: "name", conversations: 0, things: 0, inPassing: false });
       continue;
     }
-    const mentions = person.conversations.filter(
-      (c) => matchesAll(conversationText(c), terms) || c.things.some((t) => matchesAll(thingText(t), terms)),
-    ).length;
-    if (mentions > 0) people.push({ person, by: "mention", mentions });
+    const about = person.conversations.filter((c) => aboutIt.has(c.id));
+    const passing = direct.filter((r) => personKey(r.capture.person) === person.key && !aboutIt.has(r.capture.id));
+    const passingIn = [...new Set(passing.map((r) => r.capture))];
+    if (about.length + passingIn.length === 0) continue;
+    people.push({
+      ...base,
+      by: "mention",
+      conversations: about.length + passingIn.length,
+      things: about.reduce((n, c) => n + c.things.length, 0) + passing.length,
+      inPassing: about.length === 0,
+      topic: about.length === 0 && passingIn.length === 1 ? passingIn[0].topic || undefined : undefined,
+    });
   }
-  people.sort((a, b) => (a.by === b.by ? b.mentions - a.mentions : a.by === "name" ? -1 : 1));
+  const rank = (r: PersonResult) => (r.by === "name" ? 0 : r.inPassing ? 2 : 1);
+  people.sort((a, b) => rank(a) - rank(b) || b.things - a.things);
 
-  return { people, questions, things, terms };
+  return { people, questions, things: [...direct, ...context], terms, subject };
+}
+
+/**
+ * Searching your own memory: who said it, what you asked, what they said.
+ * It only ever finds what people actually told you, and every result keeps its source.
+ */
+export function searchLibrary(captures: Capture[], query: string): SearchResults {
+  const typed = meaningfulWords(query);
+  const terms = queryTerms(query);
+  const results = search(captures, terms, typed);
+  if (terms.length < 2 || results.people.length + results.questions.length + results.things.length > 0) return results;
+
+  // Nothing matched every word. If the search names someone, somewhere or a
+  // topic you have, show what you have about that instead, and say so.
+  const known = words(captures.map((c) => `${c.person} ${c.place ?? ""} ${c.topic}`).join(" "));
+  const named = typed.filter((w) => known.some((k) => k.startsWith(stem(fold(w)))));
+  if (named.length === 0 || named.length === typed.length) return results;
+  const broader = search(captures, [...new Set(named.map((w) => stem(fold(w))))], named);
+  if (broader.people.length + broader.questions.length + broader.things.length === 0) return results;
+  return { ...broader, broadened: broader.subject };
+}
+
+/** How someone came up in a search: "Told you 3 things about Boston". */
+export function mentionLine(result: PersonResult): string | undefined {
+  const { by, subject, inPassing, things, conversations, topic } = result;
+  if (by === "name" || !subject) return undefined;
+  if (!inPassing) return `Told you ${things} ${things === 1 ? "thing" : "things"} about ${subject}`;
+  if (conversations > 1) return `Mentioned ${subject} in ${conversations} conversations`;
+  const kind = topic ? topic.toLowerCase() : "";
+  return `Mentioned ${subject} in ${kind ? `${/^[aeiou]/.test(kind) ? "an" : "a"} ${kind}` : "a"} conversation`;
 }

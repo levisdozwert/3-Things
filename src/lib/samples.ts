@@ -246,7 +246,7 @@ export const sampleConversations: SampleConversation[] = [
   },
   {
     key: "books",
-    person: "Marcus",
+    person: "Daniel",
     question: "What are three books that changed how you think?",
     topic: "Books",
     keywords: ["books", "book", "read", "reading", "changed", "think"],
@@ -264,6 +264,36 @@ export const sampleConversations: SampleConversation[] = [
         headline: "The Mom Test",
         detail: "Short enough to read in an afternoon, and it completely changed how I ask people questions.",
         quote: "it completely changed how I ask people questions",
+      },
+    ],
+  },
+  {
+    // Boston comes up only in passing, which is how search should describe it.
+    key: "daniel-maine",
+    person: "Daniel",
+    question: "What are three things you'd tell someone planning a trip to Maine?",
+    topic: "Travel",
+    place: "Maine",
+    keywords: ["maine", "lobster"],
+    durationSec: 64,
+    seed: { daysAgo: 47, time: "10:35" },
+    transcript:
+      "Okay, Maine. First, fly into Boston and drive up. Flights to Portland cost almost twice as much, and honestly the drive up the coast is part of the trip. Second, go in September, not August. The water's still warm enough, the crowds are gone, and everything's cheaper. And get your lobster roll from a shack, not a restaurant. The ones on the side of the road with a line of locals are always better.",
+    things: [
+      {
+        headline: "Fly into Boston and drive up",
+        detail: "Flights to Portland cost almost twice as much, and the drive up the coast is part of the trip.",
+        quote: "fly into Boston and drive up. Flights to Portland cost almost twice as much",
+      },
+      {
+        headline: "Go in September, not August",
+        detail: "The water's still warm enough, the crowds are gone, and everything's cheaper.",
+        quote: "go in September, not August. The water's still warm enough, the crowds are gone",
+      },
+      {
+        headline: "Get your lobster roll from a shack",
+        detail: "Not a restaurant. The roadside ones with a line of locals are always better.",
+        quote: "The ones on the side of the road with a line of locals are always better",
       },
     ],
   },

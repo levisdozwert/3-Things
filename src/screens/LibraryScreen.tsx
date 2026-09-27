@@ -5,7 +5,7 @@ import { Icon } from "../components/Icon";
 import { ConversationRow, PersonRow, ThingRow, TopicRow } from "../components/library/Rows";
 import rows from "../components/library/Library.module.css";
 import { daysAgo } from "../lib/format";
-import { listPeople, listPlaces, listTopics, searchLibrary } from "../lib/library";
+import { listPeople, listPlaces, listTopics, mentionLine, searchLibrary, type SearchResults } from "../lib/library";
 import { starterQuestions } from "../lib/samples";
 import { useStore } from "../lib/store";
 import type { Capture } from "../lib/types";
@@ -27,6 +27,55 @@ function Section({ title, count, children }: { title: string; count?: number; ch
       </h2>
       <ul className={rows.list}>{children}</ul>
     </section>
+  );
+}
+
+/** Search results, a few of each at first, so even a large Library stays calm. */
+function Results({ results }: { results: SearchResults }) {
+  const [open, setOpen] = useState<string[]>([]);
+  const shown = <T,>(key: string, items: T[], limit: number) => (open.includes(key) ? items : items.slice(0, limit));
+  const more = (key: string, total: number, limit: number) =>
+    total > limit &&
+    !open.includes(key) && (
+      <li>
+        <button type="button" className={styles.more} onClick={() => setOpen((o) => [...o, key])}>
+          Show all {total}
+        </button>
+      </li>
+    );
+
+  return (
+    <div aria-live="polite">
+      {results.broadened && (
+        <p className={styles.broadened}>
+          Nothing mentions all of that yet. Showing what you have about <strong>{results.broadened}</strong>.
+        </p>
+      )}
+      {results.people.length > 0 && (
+        <Section title="People" count={results.people.length}>
+          {shown("people", results.people, 4).map((r) => (
+            <PersonRow key={r.person.key} person={r.person} terms={results.terms} note={mentionLine(r)} />
+          ))}
+          {more("people", results.people.length, 4)}
+        </Section>
+      )}
+      {results.questions.length > 0 && (
+        <Section title="Questions" count={results.questions.length}>
+          {shown("questions", results.questions, 4).map((c) => (
+            <ConversationRow key={c.id} capture={c} terms={results.terms} />
+          ))}
+          {more("questions", results.questions.length, 4)}
+        </Section>
+      )}
+      {results.things.length > 0 && (
+        <Section title="Things" count={results.things.length}>
+          {shown("things", results.things, 5).map(({ capture, thing }) => (
+            <ThingRow key={thing.id} capture={capture} thing={thing} terms={results.terms} />
+          ))}
+          {more("things", results.things.length, 5)}
+        </Section>
+      )}
+    </div>
   );
 }
 
@@ -213,42 +262,17 @@ export function LibraryScreen() {
       {searching ? (
         nothingFound ? (
           <div className={styles.noResults}>
-            <p className="serif">Nothing yet about “{query.trim()}”.</p>
-            <p>Try a name, a place, or a word they used.</p>
+            <p className="serif">Nothing here yet</p>
+            <p>
+              Try another word or{" "}
+              <Link to="/ask" viewTransition>
+                ask someone about it
+              </Link>
+              .
+            </p>
           </div>
         ) : (
-          <div aria-live="polite">
-            {results.people.length > 0 && (
-              <Section title="People" count={results.people.length}>
-                {results.people.map(({ person, by, mentions }) => (
-                  <PersonRow
-                    key={person.key}
-                    person={person}
-                    terms={results.terms}
-                    note={
-                      by === "mention"
-                        ? `Talked about this in ${mentions} ${mentions === 1 ? "conversation" : "conversations"}`
-                        : undefined
-                    }
-                  />
-                ))}
-              </Section>
-            )}
-            {results.questions.length > 0 && (
-              <Section title="Questions" count={results.questions.length}>
-                {results.questions.map((c) => (
-                  <ConversationRow key={c.id} capture={c} terms={results.terms} />
-                ))}
-              </Section>
-            )}
-            {results.things.length > 0 && (
-              <Section title="Things" count={results.things.length}>
-                {results.things.map(({ capture, thing }) => (
-                  <ThingRow key={thing.id} capture={capture} thing={thing} terms={results.terms} />
-                ))}
-              </Section>
-            )}
-          </div>
+          <Results key={query} results={results} />
         )
       ) : view === "people" ? (
         <>

@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { relativeDay, sourceLine } from "../../lib/format";
-import { matchesAll, type Person, type Topic } from "../../lib/library";
+import { matchesAll, matchesAny, type Person, type Topic } from "../../lib/library";
 import type { Capture, Thing } from "../../lib/types";
 import { Avatar } from "../Avatar";
 import { Icon } from "../Icon";
@@ -23,10 +23,19 @@ interface ConversationRowProps {
   eyebrow?: string;
   /** Show the three headlines underneath, compactly. */
   showThings?: boolean;
+  /** Leave the topic out of the quiet line, e.g. on that topic's own page. */
+  showTopic?: boolean;
 }
 
 /** One conversation: person, question, then quiet context. */
-export function ConversationRow({ capture, terms, showPerson = true, eyebrow, showThings = false }: ConversationRowProps) {
+export function ConversationRow({
+  capture,
+  terms,
+  showPerson = true,
+  eyebrow,
+  showThings = false,
+  showTopic = true,
+}: ConversationRowProps) {
   const person = capture.person.trim();
   return (
     <li>
@@ -72,7 +81,7 @@ export function ConversationRow({ capture, terms, showPerson = true, eyebrow, sh
             ))}
           </ol>
         )}
-        <p className={styles.meta}>{conversationMeta(capture, { topic: !eyebrow })}</p>
+        <p className={styles.meta}>{conversationMeta(capture, { topic: showTopic && !eyebrow })}</p>
       </Link>
     </li>
   );
@@ -81,13 +90,15 @@ export function ConversationRow({ capture, terms, showPerson = true, eyebrow, sh
 interface PersonRowProps {
   person: Person;
   terms?: string[];
-  /** Instead of the usual counts, e.g. "Mentioned in 2 conversations". */
+  /** Instead of the usual counts, e.g. "Told you 3 things about Boston". */
   note?: string;
 }
 
 /** Someone the user has learned from. Not a profile: just what they've shared. */
 export function PersonRow({ person, terms, note }: PersonRowProps) {
   const conversations = person.conversations.length;
+  // What they talk about, and where: "Travel · Food · Boston".
+  const context = person.places.length > 0 ? [...person.topics.slice(0, 2), person.places[0]] : person.topics.slice(0, 3);
   return (
     <li>
       <Link to={`/library/people/${encodeURIComponent(person.key)}`} viewTransition className={styles.personRow}>
@@ -102,12 +113,19 @@ export function PersonRow({ person, terms, note }: PersonRowProps) {
                 person.things === 1 ? "thing" : "things"
               }`}
           </p>
-          {person.topics.length > 0 && <p className={styles.topicsLine}>{person.topics.slice(0, 3).join(" · ")}</p>}
+          {context.length > 0 && <p className={styles.topicsLine}>{context.join(" · ")}</p>}
         </div>
         <Icon name="forward" size={18} className={styles.chevron} />
       </Link>
     </li>
   );
+}
+
+/** "Jason", "Jason and Maya", "Jason, Maya and Carlos", "Jason, Maya and 3 others" */
+function names(people: string[]): string {
+  if (people.length <= 1) return people.join("");
+  if (people.length <= 3) return `${people.slice(0, -1).join(", ")} and ${people[people.length - 1]}`;
+  return `${people.slice(0, 2).join(", ")} and ${people.length - 2} others`;
 }
 
 /** A subject that emerged from what the user asked, and who spoke to it. */
@@ -120,7 +138,7 @@ export function TopicRow({ topic }: { topic: Topic }) {
           <p className={`serif ${styles.topicName}`}>{topic.name}</p>
           <p className={styles.counts}>
             {n} {n === 1 ? "conversation" : "conversations"}
-            {topic.people.length > 0 && ` · ${topic.people.slice(0, 3).join(", ")}${topic.people.length > 3 ? "…" : ""}`}
+            {topic.people.length > 0 && ` · ${names(topic.people)}`}
           </p>
         </div>
         <Icon name="forward" size={18} className={styles.chevron} />
@@ -139,7 +157,8 @@ interface ThingRowProps {
 export function ThingRow({ capture, thing, terms }: ThingRowProps) {
   const person = capture.person.trim();
   // When the match is in what they explained rather than the headline, show why it came up.
-  const why = terms?.length && thing.detail && !matchesAll(thing.headline, terms) ? thing.detail : null;
+  const unexplained = terms?.filter((t) => !matchesAll(thing.headline, [t])) ?? [];
+  const why = thing.detail && unexplained.length > 0 && matchesAny(thing.detail, unexplained) ? thing.detail : null;
   return (
     <li>
       <Link to={`/library/${capture.id}`} state={{ focus: thing.id }} viewTransition className={styles.thingRow}>
@@ -154,7 +173,9 @@ export function ThingRow({ capture, thing, terms }: ThingRowProps) {
         <p className={styles.source}>
           <Avatar name={person} size="xs" />
           <span className={styles.sourceName}>{sourceLine(person)}</span>
-          <span className={styles.sourceQuestion}>{capture.question}</span>
+          <span className={styles.sourceQuestion}>
+            <Highlight text={capture.question} terms={terms} />
+          </span>
         </p>
       </Link>
     </li>

@@ -328,3 +328,38 @@
   color: var(--ink-2);
   font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 18;
 }
+
+.more {
+  min-height: 44px;
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+.more:hover {
+  color: var(--ink);
+}
+
+/* When a search was widened to the name, place or topic in it. */
+.broadened {
+  margin-top: 20px;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.broadened strong {
+  font-weight: 560;
+  color: var(--ink-2);
+}
+
+.noResults a {
+  color: var(--ink);
+  font-weight: 540;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}

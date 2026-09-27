@@ -114,6 +114,19 @@ export function YouScreen() {
             />
           }
         />
+        {settings.showSamples && (
+          <Row
+            title="A year of conversations"
+            detail="Add a year of sample conversations to see how the Library feels with hundreds of things in it. Remove them any time."
+            control={
+              <Toggle
+                label="A year of conversations"
+                checked={settings.fullLibrary}
+                onChange={(v) => updateSettings({ fullLibrary: v })}
+              />
+            }
+          />
+        )}
         <button type="button" className={styles.rowButton} onClick={exportAll}>
           <span>
             <span className={styles.rowTitle}>Export your 3 Things</span>
