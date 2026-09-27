@@ -1,0 +1,49 @@
+/*
+ * View transitions: the question, the orb and the three positions keep their
+ * place as the flow moves from asking to listening to the three things.
+ */
+
+::view-transition-group(*) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-old(root) {
+  animation: 180ms var(--ease-soft) both vt-fade-out;
+}
+
+::view-transition-new(root) {
+  animation: 320ms var(--ease-out) 60ms both vt-fade-in;
+}
+
+::view-transition-old(bottom-nav),
+::view-transition-new(bottom-nav) {
+  animation: none;
+}
+
+::view-transition-old(question),
+::view-transition-new(question) {
+  /* Text reflows between sizes; crossfade inside the moving box. */
+  height: 100%;
+  width: auto;
+  object-fit: none;
+  object-position: left top;
+}
+
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.tabs-layout {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom));
+}

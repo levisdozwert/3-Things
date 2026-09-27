@@ -1,0 +1,96 @@
+/*
+ * 3 Things — design tokens
+ *
+ * Warm, quiet, human. Paper instead of white, ink instead of black,
+ * one ember accent used on purpose. Composition over decoration.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Paper */
+  --paper: #f8f4ec;
+  --paper-raised: #fcfaf6;
+  --paper-sunken: #f1ebe1;
+  --paper-deep: #ebe3d6;
+
+  /* Ink */
+  --ink: #1c1916;
+  --ink-2: #57504a;
+  --ink-3: #776e64;
+  --ink-4: #a39a8f;
+
+  /* Lines */
+  --line: #e6dfd3;
+  --line-strong: #d6ccbd;
+
+  /* Ember — the one accent */
+  --ember: #c24a26;
+  --ember-press: #a93e1e;
+  --ember-ink: #a33a1b;
+  --ember-soft: #f3ddd1;
+  --ember-wash: #f8ebe3;
+  --on-ember: #fffaf5;
+
+  /* Quiet feedback */
+  --sage: #56705a;
+  --sage-soft: #e3ebe0;
+
+  /* Type */
+  --font-serif: "Fraunces Variable", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+
+  --text-display: 2.25rem; /* 36 */
+  --text-question-xl: 2rem; /* 32 */
+  --text-question-lg: 1.625rem; /* 26 */
+  --text-question-md: 1.3125rem; /* 21 */
+  --text-question-sm: 1.1875rem; /* 19 */
+  --text-thing: 1.1875rem; /* 19 */
+  --text-body: 1rem; /* 16 */
+  --text-small: 0.9375rem; /* 15 */
+  --text-meta: 0.8125rem; /* 13 */
+
+  /* Space (4pt) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+
+  --gutter: 24px;
+  --column: 560px;
+  --nav-height: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Shape */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 160ms;
+  --t-base: 260ms;
+  --t-slow: 480ms;
+
+  /* Elevation — barely there */
+  --lift: 0 1px 0 rgba(28, 25, 22, 0.03), 0 8px 24px -16px rgba(28, 25, 22, 0.18);
+}
+
+@media (min-width: 720px) {
+  :root {
+    --gutter: 40px;
+    --text-display: 2.5rem;
+    --text-question-xl: 2.25rem;
+    --text-question-lg: 1.875rem;
+  }
+}

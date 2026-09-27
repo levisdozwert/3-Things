@@ -1,0 +1,156 @@
+.you {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + 28px) var(--gutter) 40px;
+}
+
+.title {
+  font-size: var(--text-question-xl);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-weight: 420;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 72;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.profileText {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font-size: 1.375rem;
+  font-weight: 580;
+  letter-spacing: -0.015em;
+}
+
+.name::placeholder {
+  color: var(--ink-4);
+}
+
+.kept {
+  margin-top: 2px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.section {
+  margin-top: 40px;
+}
+
+.sectionTitle {
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.row,
+.rowButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.rowButton > span:first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowButton svg {
+  color: var(--ink-3);
+}
+
+.rowText {
+  min-width: 0;
+}
+
+.rowTitle {
+  font-size: 1rem;
+  font-weight: 560;
+  color: var(--ink);
+}
+
+.rowDetail {
+  margin-top: 2px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+.danger .rowTitle {
+  color: var(--ember-ink);
+}
+
+.about .sectionTitle {
+  margin-bottom: 20px;
+}
+
+.motto {
+  font-size: 1.625rem;
+  line-height: 1.2;
+  letter-spacing: -0.018em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 48;
+}
+
+.aboutText {
+  margin-top: 12px;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.principles {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.principles li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+}
+
+.principleNumber {
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: var(--ember);
+  font-variation-settings: "SOFT" 100, "opsz" 36;
+}
+
+.principleTitle {
+  font-weight: 580;
+}
+
+.principleText {
+  margin-top: 2px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.footer {
+  margin-top: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}

@@ -1,0 +1,219 @@
+.home {
+  max-width: var(--column);
+  margin: 0 auto;
+  min-height: calc(100dvh - var(--nav-height) - var(--safe-bottom));
+  padding: calc(var(--safe-top) + 18px) var(--gutter) 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  animation: fade var(--t-slow) var(--ease-out) both;
+}
+
+.hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 0 36px;
+}
+
+.ask {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  border-radius: var(--r-lg);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.ask:focus-visible {
+  outline-offset: 8px;
+}
+
+/* The listening presence, at rest. It becomes the listening screen's visual. */
+.presence {
+  position: relative;
+  width: 252px;
+  height: 252px;
+  display: grid;
+  place-items: center;
+}
+
+.halo {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+  background: var(--ember);
+  animation: breathe 4.6s var(--ease-in-out) infinite;
+}
+
+.halo:nth-child(1) {
+  width: 252px;
+  height: 252px;
+  opacity: 0.055;
+  animation-delay: -0.9s;
+}
+
+.halo:nth-child(2) {
+  width: 212px;
+  height: 212px;
+  opacity: 0.085;
+  animation-delay: -0.45s;
+}
+
+.halo:nth-child(3) {
+  width: 172px;
+  height: 172px;
+  opacity: 0.13;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(0.975);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.orb {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--on-ember);
+  background: radial-gradient(circle at 35% 30%, #d66340 0%, var(--ember) 62%);
+  box-shadow: 0 14px 30px -18px rgba(150, 50, 20, 0.7);
+  view-transition-name: ask-orb;
+  transition: transform var(--t-base) var(--ease-out);
+}
+
+.ask:hover .orb {
+  transform: scale(1.03);
+}
+
+.ask:active .orb {
+  transform: scale(0.96);
+}
+
+.title {
+  font-size: var(--text-display);
+  line-height: 1.05;
+  color: var(--ink);
+  font-weight: 420;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 72;
+  letter-spacing: -0.025em;
+}
+
+.lede {
+  margin-top: 12px;
+  max-width: 19em;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+.lede span {
+  display: inline-block;
+}
+
+.type {
+  margin-top: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+  font-size: 0.9375rem;
+  font-weight: 520;
+  color: var(--ink-2);
+  transition:
+    background-color var(--t-fast) var(--ease-soft),
+    color var(--t-fast) var(--ease-soft);
+}
+
+.type:hover {
+  background: var(--paper-sunken);
+  color: var(--ink);
+}
+
+.examples {
+  animation: rise var(--t-slow) var(--ease-out) 120ms both;
+}
+
+.examplesTitle {
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+}
+
+.exampleList li + li {
+  border-top: 1px solid var(--line);
+}
+
+.example {
+  display: flex;
+  align-items: center;
+  min-height: 50px;
+  padding: 10px 0;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 18;
+  transition: color var(--t-fast) var(--ease-soft);
+}
+
+.example:hover {
+  color: var(--ink);
+}
+
+@media (max-height: 740px) {
+  .presence {
+    width: 216px;
+    height: 216px;
+  }
+  .halo:nth-child(1) {
+    width: 216px;
+    height: 216px;
+  }
+  .halo:nth-child(2) {
+    width: 182px;
+    height: 182px;
+  }
+  .halo:nth-child(3) {
+    width: 148px;
+    height: 148px;
+  }
+  .orb {
+    width: 112px;
+    height: 112px;
+  }
+  .hero {
+    padding: 12px 0 24px;
+  }
+}
+
+@media (min-width: 720px) {
+  .home {
+    padding-top: 32px;
+  }
+  .example {
+    font-size: 1.125rem;
+  }
+}

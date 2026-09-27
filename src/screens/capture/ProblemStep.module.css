@@ -1,0 +1,25 @@
+.content {
+  gap: 0;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 0;
+}
+
+.title {
+  font-size: var(--text-question-lg);
+  line-height: 1.2;
+  letter-spacing: -0.018em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 48;
+}
+
+.text {
+  color: var(--ink-2);
+  line-height: 1.55;
+  margin-bottom: 10px;
+}

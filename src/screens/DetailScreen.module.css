@@ -1,0 +1,131 @@
+.detail {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: var(--safe-top) var(--gutter) 32px;
+}
+
+.topbar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 -10px;
+}
+
+.header {
+  padding: 12px 0 30px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.question {
+  font-size: var(--text-question-xl);
+  line-height: 1.18;
+  letter-spacing: -0.022em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 72;
+  text-wrap: pretty;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.from {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  animation: rise var(--t-slow) var(--ease-out) 80ms both;
+}
+
+.fromLine {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.meta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.after {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.quotes {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px 0 12px;
+  border-radius: var(--r-pill);
+  font-size: 0.9375rem;
+  font-weight: 540;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: background-color var(--t-fast) var(--ease-soft);
+}
+
+.quotes span {
+  font-size: 1.5rem;
+  line-height: 1;
+  height: 0.6em;
+  color: var(--ember);
+}
+
+.quotes:hover,
+.quotes[aria-pressed="true"] {
+  background: var(--paper-sunken);
+}
+
+.provenance {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.footer {
+  margin-top: 48px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.remove {
+  min-height: 44px;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  transition: color var(--t-fast) var(--ease-soft);
+}
+
+.remove:hover {
+  color: var(--ember-ink);
+}
+
+.editLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow-y: auto;
+  background: var(--paper);
+  animation: rise var(--t-base) var(--ease-out) both;
+}
+
+.missing {
+  padding: 96px 0;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.missing p {
+  font-size: 1.375rem;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.missing a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}

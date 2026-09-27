@@ -1,0 +1,43 @@
+.card {
+  position: relative;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 28px 24px 22px;
+  box-shadow: var(--lift);
+}
+
+.eyebrow {
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.question {
+  margin-top: 6px;
+  font-size: 1.5rem;
+  line-height: 1.22;
+  letter-spacing: -0.018em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 48;
+  text-wrap: pretty;
+}
+
+.from {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 560;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 26px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}

@@ -1,0 +1,58 @@
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-family: var(--font-serif);
+  font-variation-settings: "SOFT" 100, "opsz" 24;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.sm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.875rem;
+}
+.md {
+  width: 36px;
+  height: 36px;
+  font-size: 1.0625rem;
+}
+.lg {
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+}
+
+.ember {
+  background: var(--ember-soft);
+  color: #8c3417;
+}
+.sage {
+  background: #dfe7da;
+  color: #3f5643;
+}
+.sand {
+  background: #ede2cc;
+  color: #6b5426;
+}
+.dusk {
+  background: #e1e0ea;
+  color: #474466;
+}
+.clay {
+  background: #eedbd6;
+  color: #7a3e33;
+}
+.empty {
+  background: var(--paper-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-4);
+}

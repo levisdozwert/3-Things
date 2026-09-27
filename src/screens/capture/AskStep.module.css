@@ -1,0 +1,143 @@
+.voice,
+.typed {
+  padding-top: 12vh;
+  gap: 14px;
+}
+
+.spoken {
+  text-align: left;
+  display: block;
+  min-height: 3.6em;
+  border-radius: var(--r-md);
+}
+
+.placeholder {
+  color: var(--ink-4);
+}
+
+.interim {
+  color: var(--ink-3);
+}
+
+.editHint {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  animation: fade var(--t-slow) var(--ease-out) both;
+}
+
+.input {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font-serif);
+  color: var(--ink);
+  caret-color: var(--ember);
+  view-transition-name: question;
+}
+
+.input::placeholder {
+  color: var(--ink-4);
+}
+
+.notice {
+  font-size: var(--text-meta);
+  color: var(--ink-2);
+}
+
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.startersLabel {
+  width: 100%;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  margin-bottom: 2px;
+}
+
+.starter {
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: var(--r-pill);
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition:
+    background-color var(--t-fast) var(--ease-soft),
+    color var(--t-fast) var(--ease-soft);
+}
+
+.starter:hover {
+  background: var(--paper-sunken);
+  color: var(--ink);
+}
+
+.voiceControls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mic {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--on-ember);
+  background: radial-gradient(circle at 35% 30%, #d66340 0%, var(--ember) 62%);
+  view-transition-name: ask-orb;
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.mic:active {
+  transform: scale(0.95);
+}
+
+.mic svg {
+  position: relative;
+}
+
+.micRing {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: var(--ember);
+  opacity: 0;
+}
+
+.micLive .micRing {
+  animation: ring 1.8s var(--ease-out) infinite;
+}
+
+@keyframes ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.22;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.micHint {
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+@media (max-height: 700px) {
+  .voice,
+  .typed {
+    padding-top: 5vh;
+  }
+}

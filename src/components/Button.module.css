@@ -1,0 +1,114 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: var(--r-pill);
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  transition:
+    background-color var(--t-fast) var(--ease-soft),
+    color var(--t-fast) var(--ease-soft),
+    border-color var(--t-fast) var(--ease-soft),
+    transform var(--t-fast) var(--ease-out),
+    opacity var(--t-fast) var(--ease-soft);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.975);
+}
+
+.button:disabled {
+  opacity: 0.38;
+}
+
+.lg {
+  min-height: 58px;
+  padding: 0 28px;
+  font-size: 1.0625rem;
+}
+
+.md {
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 1rem;
+}
+
+.sm {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 0.9375rem;
+  gap: 8px;
+}
+
+.block {
+  width: 100%;
+}
+
+.ember {
+  background: var(--ember);
+  color: var(--on-ember);
+}
+.ember:hover:not(:disabled) {
+  background: var(--ember-press);
+}
+
+.ink {
+  background: var(--ink);
+  color: var(--paper);
+}
+.ink:hover:not(:disabled) {
+  background: #000;
+}
+
+.quiet {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.quiet:hover:not(:disabled) {
+  background: var(--paper-sunken);
+}
+
+.text {
+  background: transparent;
+  color: var(--ink-2);
+  padding-left: 14px;
+  padding-right: 14px;
+}
+.text:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--paper-sunken);
+}
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  transition:
+    background-color var(--t-fast) var(--ease-soft),
+    transform var(--t-fast) var(--ease-out);
+}
+.iconButton:hover {
+  background: var(--paper-sunken);
+}
+.iconButton:active {
+  transform: scale(0.94);
+}
+.iconButton:disabled {
+  opacity: 0.3;
+  background: transparent;
+}
+
+.soft {
+  background: var(--paper-sunken);
+}
+.soft:hover {
+  background: var(--paper-deep);
+}

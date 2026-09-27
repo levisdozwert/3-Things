@@ -1,0 +1,128 @@
+.clock {
+  font-size: 1rem;
+  font-weight: 540;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+
+.topbarSpacer {
+  width: 44px;
+}
+
+.content {
+  align-items: center;
+  text-align: center;
+  padding-bottom: 0;
+}
+
+.question {
+  margin: 4px auto 0;
+  max-width: 22em;
+}
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 0 8px;
+}
+
+.visual {
+  margin-bottom: 14px;
+  view-transition-name: ask-orb;
+  animation: fade 600ms var(--ease-out) both;
+}
+
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-meta);
+  font-weight: 520;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.support {
+  max-width: 17em;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+.footer {
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.stop {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 0 0 0 6px var(--paper), 0 0 0 7px var(--line);
+  transition: transform var(--t-fast) var(--ease-out);
+}
+
+.stop:active {
+  transform: scale(0.94);
+}
+
+.stopLabel {
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+}
+
+.blocked {
+  gap: 0;
+}
+
+.blockedBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.blockedIcon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ember-wash);
+  color: var(--ember-ink);
+  margin-bottom: 8px;
+}
+
+.blockedTitle {
+  font-size: 1.625rem;
+  line-height: 1.2;
+  font-variation-settings: "SOFT" 100, "opsz" 48;
+}
+
+.blockedText {
+  max-width: 20em;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+@media (max-height: 700px) {
+  .visual {
+    transform: scale(0.84);
+    margin: -20px 0 -10px;
+  }
+}

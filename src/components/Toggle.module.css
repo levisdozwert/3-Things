@@ -1,0 +1,31 @@
+.toggle {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--r-pill);
+  background: var(--paper-deep);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition: background-color var(--t-base) var(--ease-soft);
+}
+
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--paper-raised);
+  box-shadow: 0 1px 2px rgba(28, 25, 22, 0.18);
+  transition: transform var(--t-base) var(--ease-out);
+}
+
+.on {
+  background: var(--ember);
+  box-shadow: none;
+}
+
+.on .knob {
+  transform: translateX(20px);
+}

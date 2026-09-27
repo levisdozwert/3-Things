@@ -1,0 +1,10 @@
+{
+  "name": "3 Things",
+  "short_name": "3 Things",
+  "description": "Ask someone anything. Keep the three things that matter.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f4ec",
+  "theme_color": "#f8f4ec",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

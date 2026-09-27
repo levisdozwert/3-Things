@@ -1,0 +1,91 @@
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+}
+
+.bar {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ember);
+  transform-origin: center;
+}
+
+.bar:nth-child(1) {
+  height: 10px;
+}
+.bar:nth-child(2) {
+  height: 17px;
+}
+.bar:nth-child(3) {
+  height: 13px;
+}
+
+.empty {
+  background: var(--line-strong);
+}
+
+.muted .bar {
+  background: var(--ink-4);
+}
+
+.muted .empty {
+  background: var(--line);
+}
+
+.sm {
+  gap: 2.5px;
+  height: 14px;
+}
+.sm .bar {
+  width: 2.5px;
+}
+.sm .bar:nth-child(1) {
+  height: 7px;
+}
+.sm .bar:nth-child(2) {
+  height: 13px;
+}
+.sm .bar:nth-child(3) {
+  height: 10px;
+}
+
+.live .bar {
+  animation: level 1.35s var(--ease-in-out) infinite;
+}
+.live .bar:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.live .bar:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes level {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.45);
+  }
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.word {
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 36;
+}
+
+.three {
+  color: var(--ember);
+}

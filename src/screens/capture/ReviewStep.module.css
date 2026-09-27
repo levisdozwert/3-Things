@@ -1,0 +1,65 @@
+.content {
+  gap: 36px;
+  padding-top: 4px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.from {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  margin-top: 4px;
+}
+
+.fromText {
+  font-size: 1rem;
+  font-weight: 560;
+  color: var(--ink);
+  padding: 6px 0;
+  text-align: left;
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 1rem;
+  font-weight: 560;
+  color: var(--ink);
+  border-bottom: 1.5px dashed var(--line-strong);
+  border-radius: 0;
+}
+
+.nameInput::placeholder {
+  color: var(--ember-ink);
+  font-weight: 540;
+}
+
+.nameInput:focus {
+  border-bottom-style: solid;
+  border-color: var(--ember);
+}
+
+.nameInput:focus::placeholder {
+  color: var(--ink-4);
+}
+
+.after {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fade var(--t-slow) var(--ease-out) 700ms both;
+}
+
+.editButton {
+  flex: 0 0 auto !important;
+  padding: 0 22px;
+}
