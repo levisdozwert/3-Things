@@ -57,6 +57,8 @@ A real recording is never answered with sample content. In live mode, if the tra
 
 Microphone access needs a secure context: `localhost`, or HTTPS when testing on a phone.
 
+**Static hosting:** build with `VITE_ROUTER=hash` for hosts that can't rewrite deep links to `index.html`, or `VITE_ROUTER=memory` for embedded previews that can't use the URL at all. Without the API, a static build runs in preview mode.
+
 ## Project structure
 
 ```

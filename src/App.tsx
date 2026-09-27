@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import {
   createBrowserRouter,
   createHashRouter,
+  createMemoryRouter,
   Navigate,
   Outlet,
   RouterProvider,
@@ -57,8 +58,15 @@ const routes: RouteObject[] = [
   },
 ];
 
-// Hash routing for static hosts that can't rewrite deep links to index.html.
-const router = import.meta.env.VITE_HASH_ROUTER ? createHashRouter(routes) : createBrowserRouter(routes);
+// VITE_ROUTER=hash for static hosts that can't rewrite deep links to index.html;
+// VITE_ROUTER=memory for embedded previews that can't touch the URL at all.
+const routerMode = import.meta.env.VITE_ROUTER;
+const router =
+  routerMode === "memory"
+    ? createMemoryRouter(routes)
+    : routerMode === "hash"
+      ? createHashRouter(routes)
+      : createBrowserRouter(routes);
 
 export function App() {
   return (
