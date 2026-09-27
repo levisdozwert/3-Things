@@ -53,13 +53,13 @@ describe("answers coming back", () => {
   });
 
   it("makes someone new a person only once they've answered", () => {
-    const toPriya: Outgoing = { ...chicago, speakers: [{ name: "Priya" }], person: "Priya" };
-    const { captures, people: after, speakers } = receive(toPriya, [answer("a2")], people, now);
-    const priya = after.find((p) => p.name === "Priya");
-    expect(priya).toBeDefined();
-    expect(captures[0].personIds).toEqual([priya!.id]);
-    expect(speakers).toEqual([{ id: priya!.id }]);
-    expect(people.some((p) => p.name === "Priya")).toBe(false);
+    const toNoor: Outgoing = { ...chicago, speakers: [{ name: "Noor" }], person: "Noor" };
+    const { captures, people: after, speakers } = receive(toNoor, [answer("a2")], people, now);
+    const noor = after.find((p) => p.name === "Noor");
+    expect(noor).toBeDefined();
+    expect(captures[0].personIds).toEqual([noor!.id]);
+    expect(speakers).toEqual([{ id: noor!.id }]);
+    expect(people.some((p) => p.name === "Noor")).toBe(false);
   });
 
   it("keeps each answer to a link for anyone separate, under the name they gave", () => {
@@ -88,13 +88,15 @@ describe("sending", () => {
   });
 
   it("offers the sample questions still waiting, once", () => {
-    const waiting = sampleOutgoing(now);
+    const waiting = sampleOutgoing(now).filter((o) => o.state !== "answered");
     expect(waiting.map((o) => [o.person, o.state])).toEqual([
       ["Jason", "opened"],
       ["Mom", "sent"],
+      ["Maya", "sent"],
+      ["Daniel", "opened"],
     ]);
     const first = refreshSamples({ captures: [], people: [], settings: defaultSettings });
-    expect(first.outgoing?.filter((o) => o.sample)).toHaveLength(2);
+    expect(first.outgoing?.filter((o) => o.sample)).toHaveLength(sampleOutgoing(now).length);
     // Deleted by the user: not offered again.
     const again = refreshSamples({ ...first, outgoing: [] });
     expect(again.outgoing).toEqual([]);
@@ -102,7 +104,7 @@ describe("sending", () => {
 
   it("has one answer that just arrived, not opened yet", () => {
     const arrived = seedCaptures(now).filter((c) => c.unseen);
-    expect(arrived.map((c) => c.person)).toEqual(["Maya"]);
-    expect(arrived[0].remote).toBeDefined();
+    expect(arrived.map((c) => c.person)).toEqual(["Maya", "Jason"]);
+    expect(arrived.every((c) => c.remote)).toBe(true);
   });
 });

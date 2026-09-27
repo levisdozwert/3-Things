@@ -16,8 +16,8 @@ import {
 import type { QuestionStatus } from "./remote/contract";
 import { captureIdFor, receive } from "./remote/receive";
 import { localCore } from "./remote/relay";
-import { sampleNotes, sampleOutgoing, seedCaptures } from "./samples";
-import type { Capture, Outgoing, PersonRecord, Profile, Settings } from "./types";
+import { sampleNotes, sampleOutgoing, samplePerspectives, seedCaptures } from "./samples";
+import type { Capture, Outgoing, PersonRecord, Perspectives, Profile, Settings } from "./types";
 
 /** The year-of-conversations preview (loaded only when someone turns it on). */
 const isYearConversation = (c: Capture) => c.id.startsWith("year-");
@@ -35,6 +35,11 @@ export interface Persisted {
   separate?: string[];
   /** Questions sent to people to answer on their own phones. */
   outgoing?: Outgoing[];
+  /**
+   * How answers to the same question connect, by question. A layer on top of
+   * the answers: it points at people's things and never changes them.
+   */
+  perspectives?: Record<string, Perspectives>;
 }
 
 const defaultProfile: Profile = { firstName: "", lastName: "", preferredName: "" };
@@ -79,10 +84,16 @@ function seedWaiting(outgoing: Outgoing[], signedAs: string) {
   }
 }
 
-/** Every conversation points at its people, and reads as their current names. */
+/**
+ * Every conversation points at its people, and reads as their current names.
+ * Answers that came back from a link belong to the question they answer
+ * (answers received before questions had groups are placed now).
+ */
 function linked(state: Persisted): Persisted {
   const { captures, people } = reconcile(state.captures, state.people, sampleNotes);
-  return { ...state, captures, people };
+  const answered = new Map((state.outgoing ?? []).flatMap((o) => o.answers.map((id) => [id, o.group] as const)));
+  const grouped = captures.map((c) => (c.group || !answered.has(c.id) ? c : { ...c, group: answered.get(c.id) }));
+  return { ...state, captures: grouped, people };
 }
 
 /**
@@ -114,12 +125,20 @@ export function refreshSamples(state: Persisted): Persisted {
   const outgoing = state.outgoing ?? [];
   const newWaiting = state.settings.showSamples ? waiting.filter((o) => !offered.has(o.id)) : [];
 
+  // How the sample questions' answers connect, offered once for each.
+  const readings = samplePerspectives();
+  const perspectives = { ...state.perspectives };
+  for (const [group, reading] of Object.entries(readings)) {
+    if (!perspectives[group] && state.settings.showSamples && !offered.has(`perspectives:${group}`)) perspectives[group] = reading;
+  }
+
   return linked({
     ...state,
     people: state.people ?? [],
     captures: [...captures, ...added],
     outgoing: [...outgoing, ...newWaiting],
-    seeded: [...seeds.map((c) => c.id), ...waiting.map((o) => o.id)],
+    perspectives,
+    seeded: [...seeds.map((c) => c.id), ...waiting.map((o) => o.id), ...Object.keys(readings).map((g) => `perspectives:${g}`)],
   });
 }
 
@@ -145,6 +164,7 @@ function load(): Persisted {
         seeded: parsed.seeded,
         separate: parsed.separate,
         outgoing: parsed.outgoing,
+        perspectives: parsed.perspectives,
       });
     }
   } catch {
@@ -152,12 +172,14 @@ function load(): Persisted {
   }
   const captures = seedCaptures();
   const outgoing = sampleOutgoing();
+  const perspectives = samplePerspectives();
   return linked({
     captures,
     people: [],
     settings: defaultSettings,
     outgoing,
-    seeded: [...captures.map((c) => c.id), ...outgoing.map((o) => o.id)],
+    perspectives,
+    seeded: [...captures.map((c) => c.id), ...outgoing.map((o) => o.id), ...Object.keys(perspectives).map((g) => `perspectives:${g}`)],
   });
 }
 
@@ -225,6 +247,9 @@ interface Store {
   receiveStatus(status: QuestionStatus, withAudio?: string[]): void;
   /** Opened an answer that arrived. */
   markSeen(captureId: string): void;
+  /** How the answers to each question connect, read on top of them. */
+  perspectives: Record<string, Perspectives>;
+  savePerspectives(group: string, reading: Perspectives): void;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -387,6 +412,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       people: [],
       separate: [],
       outgoing: [],
+      perspectives: {},
       seeded: s.seeded,
       settings: { ...defaultSettings, showSamples: false },
     }));
@@ -422,6 +448,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const savePerspectives = useCallback((group: string, reading: Perspectives) => {
+    setState((s) => ({ ...s, perspectives: { ...s.perspectives, [group]: reading } }));
+  }, []);
+
   const markSeen = useCallback((captureId: string) => {
     setState((s) =>
       s.captures.some((c) => c.id === captureId && c.unseen)
@@ -446,6 +476,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeOutgoing,
       receiveStatus,
       markSeen,
+      perspectives: state.perspectives ?? {},
+      savePerspectives,
       captures: visible,
       people: state.people.filter((p) => present.has(p.id)),
       settings: state.settings,
@@ -488,6 +520,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     removeOutgoing,
     receiveStatus,
     markSeen,
+    savePerspectives,
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

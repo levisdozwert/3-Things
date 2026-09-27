@@ -6,6 +6,7 @@ import { countWords, listOf, onDay } from "../../lib/format";
 import { listPeople } from "../../lib/library";
 import { askedBefore, isNew, nameKey, type Speaker } from "../../lib/people";
 import { useStore } from "../../lib/store";
+import { HowMany } from "./FewPeopleStep";
 import flow from "./Flow.module.css";
 import styles from "./WhoStep.module.css";
 
@@ -18,6 +19,8 @@ interface WhoStepProps {
   onBack: () => void;
   /** Sending the question: skipping makes a link anyone can answer. */
   sending?: boolean;
+  /** Offered when sending: ask a few people instead of one. */
+  onFew?: () => void;
 }
 
 type Mode = "find" | "name" | "chosen";
@@ -28,7 +31,7 @@ type Mode = "find" | "name" | "chosen";
  * someone new. Choosing someone you know brings back, quietly, what you've
  * asked them before. Never a profile, never a form.
  */
-export function WhoStep({ question, speakers, onChange, onContinue, onSkip, onBack, sending = false }: WhoStepProps) {
+export function WhoStep({ question, speakers, onChange, onContinue, onSkip, onBack, sending = false, onFew }: WhoStepProps) {
   const { captures, people } = useStore();
   const everyone = useMemo(() => listPeople(captures, people), [captures, people]);
   const current = speakers[0];
@@ -77,6 +80,7 @@ export function WhoStep({ question, speakers, onChange, onContinue, onSkip, onBa
             <h2 id="who-heading" className={`serif ${styles.whoHeading}`}>
               Who are you asking?
             </h2>
+            {onFew && <HowMany many={false} onChange={(many) => many && onFew()} />}
             <PersonPicker
               label="Who are you asking?"
               placeholder="Their name"

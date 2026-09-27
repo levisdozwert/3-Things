@@ -12,6 +12,7 @@ import { WhoSheet } from "../components/people/WhoSheet";
 import { loadRecording } from "../lib/audio/audioStore";
 import { calendarDate, duration, onDay, sourceLine } from "../lib/format";
 import { topicKey } from "../lib/library";
+import { findQuestion, groupOf, isShared, perspectivesLine } from "../lib/questions";
 import { useStore } from "../lib/store";
 import { useBack } from "../lib/useBack";
 import { EditStep } from "./capture/EditStep";
@@ -27,9 +28,23 @@ export function DetailScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const back = useBack("/library");
-  const { getCapture, getPerson, updateCapture, setSpeakers, deleteCapture, deleteAudio, toggleKeepClose, markSeen } =
-    useStore();
+  const {
+    getCapture,
+    getPerson,
+    updateCapture,
+    setSpeakers,
+    deleteCapture,
+    deleteAudio,
+    toggleKeepClose,
+    markSeen,
+    captures,
+    outgoing,
+    people,
+  } = useStore();
   const capture = getCapture(id);
+  // Part of a question asked of several people: one perspective among others.
+  const question = capture ? findQuestion(groupOf(capture), captures, outgoing, people) : undefined;
+  const shared = question && isShared(question) ? question : undefined;
   // Arriving from a search result: bring that one thing forward.
   const focus = (location.state as { focus?: string } | null)?.focus;
 
@@ -106,7 +121,10 @@ export function DetailScreen() {
         <p className={styles.arrived}>
           <Icon name="check" size={16} strokeWidth={2.2} />
           <span>
-            {person || "They"} answered your question. It’s saved in your Library.
+            {person || "They"} answered your question.{" "}
+            {shared && shared.answers.length >= 2
+              ? `You now have ${shared.answers.length} perspectives on it.`
+              : "It’s saved in your Library."}
           </span>
         </p>
       )}
@@ -148,6 +166,18 @@ export function DetailScreen() {
               {capture.durationSec > 0 && ` · ${duration(capture.durationSec)}`}
             </p>
             {kept && <p className={styles.keptNote}>Kept close</p>}
+            {shared && (
+              <Link
+                to={`/library/questions/${encodeURIComponent(shared.key)}`}
+                viewTransition
+                className={styles.together}
+              >
+                {shared.answers.length >= 2
+                  ? `One of ${perspectivesLine(shared.answers.length).toLowerCase()}`
+                  : `You asked ${shared.people} people this`}
+                <Icon name="forward" size={14} />
+              </Link>
+            )}
           </div>
         </div>
 

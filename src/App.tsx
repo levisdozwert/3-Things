@@ -57,6 +57,12 @@ const routes: RouteObject[] = [
           { path: "library", lazy: screen(() => import("./screens/LibraryScreen"), "LibraryScreen") },
           { path: "library/people/:key", lazy: screen(() => import("./screens/PersonScreen"), "PersonScreen") },
           { path: "library/topics/:key", lazy: screen(() => import("./screens/TopicScreen"), "TopicScreen") },
+          // One question asked of several people, and their perspectives side by side.
+          { path: "library/questions/:group", lazy: screen(() => import("./screens/QuestionHubScreen"), "QuestionHubScreen") },
+          {
+            path: "library/questions/:group/perspectives",
+            lazy: screen(() => import("./screens/PerspectivesScreen"), "PerspectivesScreen"),
+          },
           { path: "library/:id", lazy: screen(() => import("./screens/DetailScreen"), "DetailScreen") },
           { path: "you", lazy: screen(() => import("./screens/YouScreen"), "YouScreen") },
           { path: "you/profile", lazy: screen(() => import("./screens/ProfileScreen"), "ProfileScreen") },

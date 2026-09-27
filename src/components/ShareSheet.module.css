@@ -27,3 +27,32 @@
   font-weight: 560;
   color: var(--ink-2);
 }
+
+/* One point from each person, with their name under it. */
+.points {
+  margin: 18px 0 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.points li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.points li > span:first-child {
+  font-size: 1.1875rem;
+  line-height: 1.28;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 30;
+}
+
+.points li > span:last-child {
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ember-ink);
+}

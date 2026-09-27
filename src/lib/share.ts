@@ -9,6 +9,22 @@ export function shareText(capture: Capture): string {
   );
 }
 
+/** One point from each person, with their name on it. */
+export interface SharedPoint {
+  headline: string;
+  name: string;
+}
+
+/**
+ * Perspectives as text: the question, whose they are, and one attributed point
+ * each. Never the whole of anyone's answer, never recordings or notes.
+ */
+export function perspectivesText(question: string, names: string, points: SharedPoint[]): string {
+  return [`“${question}”`, `Perspectives from ${names}`, "", ...points.map((p) => `${p.headline} (${p.name})`), "", "Kept with 3 Things"].join(
+    "\n",
+  );
+}
+
 export type ShareResult = "shared" | "copied" | "cancelled" | "failed";
 
 /**

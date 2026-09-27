@@ -11,6 +11,9 @@ export interface Arrival {
   captureId: string;
   name: string;
   question: string;
+  /** The question it answers, which others may have answered too. */
+  group: string;
+  place?: string;
 }
 
 const EVERY_MS = 20_000;
@@ -73,6 +76,8 @@ export function useRemoteSync(onArrive: (arrivals: Arrival[]) => void) {
               captureId: captureIdFor(a),
               name: question.person || a.name.trim() || "Someone",
               question: question.question,
+              group: question.group,
+              ...(a.place ? { place: a.place } : {}),
             })),
           );
         }

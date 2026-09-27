@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Avatar } from "../components/Avatar";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
-import { ConversationRow, PersonRow, ThingRow, TopicRow } from "../components/library/Rows";
+import { ConversationRow, PersonRow, QuestionRow, ThingRow, TopicRow } from "../components/library/Rows";
 import rows from "../components/library/Library.module.css";
 import { MergeSheet } from "../components/people/MergeSheet";
 import { count, daysAgo } from "../lib/format";
@@ -11,12 +11,14 @@ import {
   listPeople,
   listPlaces,
   listTopics,
+  matchesAll,
   mentionLine,
   searchLibrary,
   type Person,
   type SearchResults,
 } from "../lib/library";
 import { likelyDuplicates } from "../lib/people";
+import { listQuestions, type QuestionCollection } from "../lib/questions";
 import { isWaiting } from "../lib/remote/describe";
 import { starterQuestions } from "../lib/samples";
 import { useStore } from "../lib/store";
@@ -43,7 +45,7 @@ function Section({ title, count, children }: { title: string; count?: number; ch
 }
 
 /** Search results, a few of each at first, so even a large Library stays calm. */
-function Results({ results }: { results: SearchResults }) {
+function Results({ results, questions }: { results: SearchResults; questions: QuestionCollection[] }) {
   const [open, setOpen] = useState<string[]>([]);
   const shown = <T,>(key: string, items: T[], limit: number) => (open.includes(key) ? items : items.slice(0, limit));
   const more = (key: string, total: number, limit: number) =>
@@ -71,8 +73,12 @@ function Results({ results }: { results: SearchResults }) {
           {more("people", results.people.length, 4)}
         </Section>
       )}
-      {results.questions.length > 0 && (
-        <Section title="Questions" count={results.questions.length}>
+      {results.questions.length + questions.length > 0 && (
+        <Section title="Questions" count={results.questions.length + questions.length}>
+          {/* A question several people answered, then each of their answers on its own. */}
+          {questions.map((q) => (
+            <QuestionRow key={q.key} question={q} terms={results.terms} />
+          ))}
           {shown("questions", results.questions, 4).map((c) => (
             <ConversationRow key={c.id} capture={c} terms={results.terms} />
           ))}
@@ -91,11 +97,23 @@ function Results({ results }: { results: SearchResults }) {
   );
 }
 
-function Recent({ captures }: { captures: Capture[] }) {
-  const groups: { title: string; items: Capture[] }[] = [
-    { title: "Today", items: captures.filter((c) => daysAgo(c.recordedAt) <= 0) },
-    { title: "This week", items: captures.filter((c) => daysAgo(c.recordedAt) > 0 && daysAgo(c.recordedAt) <= 6) },
-    { title: "Earlier", items: captures.filter((c) => daysAgo(c.recordedAt) > 6) },
+type Entry = { at: string; capture: Capture; question?: never } | { at: string; question: QuestionCollection; capture?: never };
+
+/**
+ * Recent conversations, newest first. A question several people answered is
+ * one entry, "4 perspectives", dated by its latest answer; each answer is
+ * still on its person's page, in its topic, and in search.
+ */
+function Recent({ captures, questions }: { captures: Capture[]; questions: QuestionCollection[] }) {
+  const together = new Set(questions.flatMap((q) => q.answers.map((c) => c.id)));
+  const entries: Entry[] = [
+    ...captures.filter((c) => !together.has(c.id)).map((capture) => ({ at: capture.recordedAt, capture })),
+    ...questions.map((question) => ({ at: question.answers[question.answers.length - 1].recordedAt, question })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+  const groups: { title: string; items: Entry[] }[] = [
+    { title: "Today", items: entries.filter((e) => daysAgo(e.at) <= 0) },
+    { title: "This week", items: entries.filter((e) => daysAgo(e.at) > 0 && daysAgo(e.at) <= 6) },
+    { title: "Earlier", items: entries.filter((e) => daysAgo(e.at) > 6) },
   ];
   return (
     <>
@@ -103,9 +121,9 @@ function Recent({ captures }: { captures: Capture[] }) {
         .filter((g) => g.items.length > 0)
         .map((g) => (
           <Section key={g.title} title={g.title}>
-            {g.items.map((c) => (
-              <ConversationRow key={c.id} capture={c} />
-            ))}
+            {g.items.map((e) =>
+              e.question ? <QuestionRow key={e.question.key} question={e.question} /> : <ConversationRow key={e.capture.id} capture={e.capture} />,
+            )}
           </Section>
         ))}
     </>
@@ -118,7 +136,8 @@ function Recent({ captures }: { captures: Capture[] }) {
  */
 export function LibraryScreen() {
   const { captures, people: records, separate, mergePeople, keepSeparate, outgoing } = useStore();
-  const waiting = outgoing.filter(isWaiting).length;
+  // By question: one question sent to four people is one question waiting.
+  const waiting = new Set(outgoing.filter(isWaiting).map((o) => o.group)).size;
   const [merging, setMerging] = useState<[Person, Person] | null>(null);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -143,6 +162,15 @@ export function LibraryScreen() {
   const topics = useMemo(() => listTopics(captures), [captures]);
   const places = useMemo(() => listPlaces(captures), [captures]);
   const results = useMemo(() => searchLibrary(captures, query, records), [captures, query, records]);
+  // Questions several people answered, as questions in their own right.
+  const shared = useMemo(
+    () => listQuestions(captures, outgoing, records).filter((q) => q.answers.length >= 2),
+    [captures, outgoing, records],
+  );
+  const sharedFound = useMemo(
+    () => shared.filter((q) => matchesAll(`${q.question} ${q.topic} ${q.place ?? ""}`, results.terms)),
+    [shared, results.terms],
+  );
 
   const things = captures.reduce((n, c) => n + c.things.length, 0);
   const kept = captures.filter((c) => c.keptClose);
@@ -185,7 +213,8 @@ export function LibraryScreen() {
     );
   }
 
-  const nothingFound = searching && results.people.length + results.questions.length + results.things.length === 0;
+  const nothingFound =
+    searching && results.people.length + results.questions.length + results.things.length + sharedFound.length === 0;
 
   return (
     <main className={styles.library}>
@@ -288,7 +317,7 @@ export function LibraryScreen() {
             </p>
           </div>
         ) : (
-          <Results key={query} results={results} />
+          <Results key={query} results={results} questions={sharedFound} />
         )
       ) : view === "people" ? (
         <>
@@ -358,7 +387,7 @@ export function LibraryScreen() {
               <Icon name="forward" size={16} />
             </Link>
           )}
-          <Recent captures={keptOnly ? kept : captures} />
+          <Recent captures={keptOnly ? kept : captures} questions={keptOnly ? [] : shared} />
         </>
       )}
 

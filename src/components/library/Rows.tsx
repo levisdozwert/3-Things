@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { relativeDay, sourceLine } from "../../lib/format";
 import { matchesAll, matchesAny, type Person, type Topic } from "../../lib/library";
+import { namesOf, perspectivesLine, type QuestionCollection } from "../../lib/questions";
 import { useStore } from "../../lib/store";
 import type { Capture, Thing } from "../../lib/types";
 import { Avatar } from "../Avatar";
@@ -92,6 +93,43 @@ export function ConversationRow({
           </ol>
         )}
         <p className={styles.meta}>{conversationMeta(capture, { topic: showTopic && !eyebrow })}</p>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * A question several people answered: it reads as one question with several
+ * perspectives, and opens to each of them. Their answers are still their own.
+ */
+export function QuestionRow({ question, terms }: { question: QuestionCollection; terms?: string[] }) {
+  const { getPerson } = useStore();
+  const answers = question.answers;
+  const latest = answers[answers.length - 1]?.recordedAt ?? question.latest;
+  return (
+    <li>
+      <Link to={`/library/questions/${encodeURIComponent(question.key)}`} viewTransition className={styles.row}>
+        <div className={styles.who}>
+          <span className={styles.faces} aria-hidden="true">
+            {answers.slice(0, 4).map((c) => (
+              <Avatar
+                key={c.id}
+                name={c.person}
+                photo={(c.personIds ?? []).length === 1 ? getPerson(c.personIds![0])?.photo : undefined}
+                size="sm"
+              />
+            ))}
+          </span>
+          <span className={styles.person}>{namesOf(answers.map((c) => c.person), 3)}</span>
+          {question.unseen && <span className={styles.fresh}>New</span>}
+        </div>
+        <p className={`serif ${styles.question}`}>
+          <Highlight text={question.question} terms={terms} />
+        </p>
+        <p className={styles.meta}>
+          <span className={styles.perspectives}>{perspectivesLine(answers.length)}</span>
+          {[question.topic, question.place, relativeDay(latest)].filter(Boolean).map((part) => ` · ${part}`)}
+        </p>
       </Link>
     </li>
   );

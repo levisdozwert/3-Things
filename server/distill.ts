@@ -23,6 +23,9 @@ const DistillSchema = z.object({
 
 type Effort = "low" | "medium" | "high";
 
+/** The editor, for finding someone's three things and for reading answers side by side. */
+export const EDITOR_MODEL = "claude-opus-5";
+
 export interface DistillOptions {
   apiKey?: string;
   /** High by default: getting someone's meaning right matters more than a few seconds. */
@@ -53,7 +56,7 @@ export async function distill(req: DistillRequest, options: DistillOptions = {})
   const client = new Anthropic(options.apiKey ? { apiKey: options.apiKey } : {});
 
   const response = await client.beta.messages.parse({
-    model: "claude-opus-5",
+    model: EDITOR_MODEL,
     max_tokens: 16000,
     // If a request is ever declined, let the API retry it on its recommended fallback model.
     betas: ["server-side-fallback-2026-07-01"],

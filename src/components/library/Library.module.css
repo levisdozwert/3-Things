@@ -227,3 +227,22 @@
 .fresh + .kept {
   margin-left: 8px;
 }
+
+/* A question several people answered. */
+.faces {
+  display: inline-flex;
+}
+
+.faces > * + * {
+  margin-left: -9px;
+}
+
+.faces > * {
+  box-shadow: 0 0 0 2px var(--paper);
+  border-radius: 50%;
+}
+
+.perspectives {
+  font-weight: 600;
+  color: var(--ember-ink);
+}

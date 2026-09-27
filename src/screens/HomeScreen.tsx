@@ -4,7 +4,8 @@ import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { Wordmark } from "../components/Mark";
 import { listPeople } from "../lib/library";
-import { isWaiting, sentTo, sentWhen, stateLabel } from "../lib/remote/describe";
+import { answeredLine, groupOf, listQuestions, namesOf, perspectivesLine } from "../lib/questions";
+import { isWaiting, sentWhen, stateLabel } from "../lib/remote/describe";
 import { starterQuestions } from "../lib/samples";
 import { useStore } from "../lib/store";
 import styles from "./HomeScreen.module.css";
@@ -14,7 +15,13 @@ export function HomeScreen() {
   const { captures, people, outgoing, getPerson } = useStore();
   // Answers that came back and haven't been opened. Personal, not a feed.
   const arrived = captures.filter((c) => c.unseen);
-  const waiting = outgoing.filter(isWaiting);
+  // Waiting, by question: the same question sent to four people is one row, not four.
+  const questions = useMemo(() => listQuestions(captures, outgoing, people), [captures, outgoing, people]);
+  const answersTo = (group: string) => questions.find((q) => q.key === group)?.answers.length ?? 0;
+  const waiting = questions
+    .map((q) => ({ q, out: q.asked.filter((a) => a.outgoing && isWaiting(a.outgoing) && a.answers.length === 0) }))
+    .filter((w) => w.out.length > 0)
+    .sort((a, b) => b.out[b.out.length - 1].at.localeCompare(a.out[a.out.length - 1].at));
 
   // Once asking people things is a habit (not on a first visit), the people
   // you learn from most recently are one tap from asking again.
@@ -74,7 +81,12 @@ export function HomeScreen() {
                     <span className={styles.rowText}>
                       <span className={styles.rowWho}>{c.person || "Someone"} answered your question</span>
                       <span className={`serif ${styles.rowQuestion}`}>{c.question}</span>
-                      <span className={styles.rowAction}>See {c.person ? `${c.person}’s` : "their"} 3</span>
+                      <span className={styles.rowAction}>
+                        See {c.person ? `${c.person}’s` : "their"} 3
+                        {answersTo(groupOf(c)) >= 2 && (
+                          <span className={styles.rowMeta}> · {perspectivesLine(answersTo(groupOf(c))).toLowerCase()} so far</span>
+                        )}
+                      </span>
                     </span>
                   </Link>
                 </li>
@@ -108,18 +120,26 @@ export function HomeScreen() {
             Waiting for answers
           </h2>
           <ul className={styles.rows}>
-            {waiting.slice(0, 3).map((o) => {
-              const name = sentTo(o, people);
+            {waiting.slice(0, 3).map(({ q, out }) => {
+              const several = q.people > 1;
+              const one = out[0].outgoing!;
+              const names = namesOf(out.map((a) => a.name || "Anyone with the link"));
               return (
-                <li key={o.id}>
-                  <Link to={`/sent/${encodeURIComponent(o.id)}`} viewTransition className={styles.row}>
-                    <Avatar name={name} size="sm" />
+                <li key={q.key}>
+                  <Link
+                    to={several ? `/library/questions/${encodeURIComponent(q.key)}` : `/sent/${encodeURIComponent(one.id)}`}
+                    viewTransition
+                    className={styles.row}
+                  >
+                    {/* Two of the people still to answer, drawn the way a pair always is. */}
+                    <Avatar name={out.slice(0, 2).map((a) => a.name).join(" + ")} size="sm" />
                     <span className={styles.rowText}>
-                      <span className={styles.rowWho}>{name || "Anyone with the link"}</span>
-                      <span className={`serif ${styles.rowQuestion}`}>{o.question}</span>
+                      <span className={styles.rowWho}>{names}</span>
+                      <span className={`serif ${styles.rowQuestion}`}>{q.question}</span>
                       <span className={styles.rowMeta}>
-                        {sentWhen(o.sentAt)}
-                        {o.state === "opened" && ` · ${stateLabel(o)}`}
+                        {several
+                          ? `${answeredLine(q)} · ${sentWhen(out[0].at)}`
+                          : `${sentWhen(one.sentAt)}${one.state === "opened" ? ` · ${stateLabel(one)}` : ""}`}
                       </span>
                     </span>
                   </Link>

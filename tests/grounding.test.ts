@@ -48,6 +48,12 @@ describe("unsupportedTerms", () => {
   it("doesn't mistake the first word of a sentence for a name", () => {
     expect(unsupportedTerms("Walk the waterfront. Go early.", sources)).toEqual([]);
   });
+
+  it("accepts a possessive name they said, and still flags one they didn't", () => {
+    const said = { transcript: "Get the deep dish at Lou Malnati's, trust me." };
+    expect(unsupportedTerms("Deep dish at Lou Malnati’s", said)).toEqual([]);
+    expect(unsupportedTerms("Deep dish at Giordano's", said)).toEqual(["Giordano's"]);
+  });
 });
 
 describe("groundThing", () => {

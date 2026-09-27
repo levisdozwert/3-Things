@@ -4,6 +4,7 @@ import type { Plugin } from "vite";
 import type { DistillRequest } from "../src/lib/distill/contract";
 import { RelayCore, memoryStorage, type RelayStorage } from "../src/lib/remote/core";
 import { distill, RefusedError, type DistillOptions } from "./distill";
+import { isPerspectivesRequest, readAcross } from "./perspectives";
 
 const MAX_BODY_BYTES = 256 * 1024;
 /** An answer may carry a recording, when the person answering allowed it. */
@@ -81,6 +82,7 @@ export interface ApiOptions extends DistillOptions {
 /**
  * GET  /api/health                → { ready, relay } — live distilling; the question relay.
  * POST /api/distill               → DistillResponse
+ * POST /api/perspectives          → PerspectivesResponse     several answers to one question, read side by side
  *
  * Asking someone who isn't with you (see src/lib/remote):
  * POST /api/remote                → { id, ownerKey }         the asker creates a question
@@ -111,7 +113,7 @@ export function createApiHandler(options: ApiOptions) {
       return handleRemote(relay, req, res, url, new URLSearchParams(search));
     }
 
-    if (url === "/api/distill" && req.method === "POST") {
+    if ((url === "/api/distill" || url === "/api/perspectives") && req.method === "POST") {
       if (!ready) return send(res, 503, { error: "not_configured" });
       let body: unknown;
       try {
@@ -119,9 +121,15 @@ export function createApiHandler(options: ApiOptions) {
       } catch {
         return send(res, 400, { error: "invalid_body" });
       }
-      if (!isDistillRequest(body)) return send(res, 400, { error: "invalid_request" });
 
       try {
+        if (url === "/api/perspectives") {
+          if (!isPerspectivesRequest(body)) return send(res, 400, { error: "invalid_request" });
+          // What people told the asker stays private: never cached along the way.
+          res.setHeader("cache-control", "no-store");
+          return send(res, 200, await readAcross(body, options));
+        }
+        if (!isDistillRequest(body)) return send(res, 400, { error: "invalid_request" });
         return send(res, 200, await distill(body, options));
       } catch (error) {
         if (error instanceof RefusedError) return send(res, 422, { error: "declined" });
@@ -130,7 +138,7 @@ export function createApiHandler(options: ApiOptions) {
           console.error(`[3 Things] API error ${error.status}: ${error.message}`);
           return send(res, 502, { error: "upstream" });
         }
-        console.error("[3 Things] distill failed", error);
+        console.error(`[3 Things] ${url} failed`, error);
         return send(res, 500, { error: "internal" });
       }
     }

@@ -11,6 +11,7 @@ There is always something to learn from another person. In 3 Things you ask some
 ```
 Ask → Listen → Understand → 3 Things → Save            (in person)
 Ask → Send → They speak → 3 Things returns to you       (sent to someone)
+Ask → A few people → Each answers → Perspectives        (the same question, several people)
 ```
 
 | Step | Screen | What it does |
@@ -42,12 +43,12 @@ Over time the Library becomes a record of what people have taught you, organized
 | Screen | What it does |
 | --- | --- |
 | **Your 3 Things** | A quiet growth line (*You've learned 53 things from 10 people.*), then search, then an understated **Recent · People · Topics** switch. No extra tab, no streaks, no scores. |
-| **Recent** | The default. Grouped *Today*, *This week* and *Earlier*. Each row leads with the person (small initial avatar), then the question in serif, then a quiet line: topic · place · when. A **Kept close** chip filters to the conversations you bookmarked. |
+| **Recent** | The default. Grouped *Today*, *This week* and *Earlier*. Each row leads with the person (small initial avatar), then the question in serif, then a quiet line: topic · place · when. A question several people answered is one row: their faces and names, the question, then *4 perspectives · Travel · Chicago · Today*, opening the question's page. A **Kept close** chip filters to the conversations you bookmarked. |
 | **People** | Everyone you've asked, with how many things you've learned from them and what, and where, you talked about (*Travel · Life · Boston*). No profiles, followers or social features. Unnamed conversations are counted in a footnote, never guessed. |
 | **Person** | A photo or initial, the name, your private note (*Former colleague from my first startup*), *15 things you've learned from Jason*, then *What you've asked, over time*: each question with its three headlines and its date. **Ask Jason something** starts a new question with Jason already chosen. **Edit** changes the name, note or photo, merges with someone else, or deletes them. |
 | **Topics** | Suggested when saved (Startup, Travel, Food, Life…), always changeable. Places sit underneath as a quiet line, not a tab. |
 | **Topic** | Every conversation about it, across people. With two or more: *Different people, different views. Each stays in their own words.* Jason's "Hire more slowly than you think you need to" and Maya's "Hire faster than feels comfortable" stay side by side, attributed and never merged into a consensus. |
-| **Search** | *Search people, questions or things.* Matches names, questions, things, their context, topics and places, with gentle word matching (*hiring* finds *hire*). Results are grouped **People**, **Questions**, **Things**, a few of each with **Show all** for the rest. People say how they came up: *Told you 6 things about Boston*, *Mentioned Boston in a travel conversation*. Things list what mentions the search first, then the rest of the conversations about it, and every thing shows who said it and what was asked. Opening one scrolls to it and highlights it briefly. |
+| **Search** | *Search people, questions or things.* Matches names, questions, things, their context, topics and places, with gentle word matching (*hiring* finds *hire*). Results are grouped **People**, **Questions**, **Things**, a few of each with **Show all** for the rest. Under Questions, a question several people answered comes first (*What are three things I shouldn't miss in Chicago? · 3 perspectives*), then each of their answers on its own. People say how they came up: *Told you 6 things about Boston*, *Mentioned Boston in a travel conversation*. Things list what mentions the search first, then the rest of the conversations about it, and every thing shows who said it and what was asked. Opening one scrolls to it and highlights it briefly. |
 | **Saved detail** | The person (links to their page), date, topic (links to the topic), place, the question and the three things. **Keep close** bookmarks it; there's no separate Favorites tab. |
 | **Saved** | After saving: *Filed under Startup · Change*, a small sheet with topic suggestions and a *Where* field. |
 
@@ -117,6 +118,33 @@ POST /api/remote/:id/collect    → the relay forgets collected answers
 POST /api/remote/:id/delete     → the link says it's no longer available
 ```
 
+## One question, several people
+
+Ask the same question to a few people, and see how each of them answers it. Not to crowdsource one answer: different people know different things, and sometimes see the same thing differently.
+
+**Asking.** *Who are you asking?* has a quiet **One person · A few people** switch when you send a question. *A few people* shows the people you've asked recently with a tick beside each, plus **Add someone** (the same people picker, including someone new), and **Send question**. Then *Send it to each of them*: one row per person, each with **Send** (the phone's share sheet) or *Copy Sarah's link instead*. Everyone gets a link of their own and a question asked of them alone: Sarah sees *Levis asked you for 3*, never *Levis sent this to 7 people*, and nobody sees who else was asked. When they're sent, **See your question** opens the question's page.
+
+**The question's page** (`/library/questions/:group`). *Asked 4 people*, the question, *2 of 4 answered*, then **People you asked** with quiet statuses (*Answered · Sep 25*, *Opened*, *Waiting*, *In person · Apr 30*), then each person's answer under their name in the order they arrived. With no answers yet: *No answers yet. Waiting for their 3.* With one: that answer, shown normally, and *When someone else answers, you'll be able to read their perspectives side by side.* With two or more: **See perspectives**. **Ask someone else** adds a person, in person or by link, months later if you like; their answer joins the same question, and every answer keeps its date. At the bottom, quietly: *First asked Sep 24. 4 people asked, 2 answers, 6 things so far.*
+
+**Perspectives** (`…/perspectives`). Human first, then what connects them, as one vertical read:
+1. The question, and *From Sarah, Jason and Maya*.
+2. **All · Sarah · Jason · Maya**: a filter, nothing more.
+3. Each person's own 3, stacked under their name. Never side by side on a phone, never mixed together.
+4. **Where they overlap.** *Lou Malnati's · Mentioned by Sarah and Jason · Same place, different reasons.* with each person's reason under their name (*Goes for the pizza itself*; *Takes every single visitor there*). Related ideas say so: *Watching the money · Connected ideas from Jason and Carlos · Both are about controlling spending.* Tap any of them to see exactly what each person said, in their answer, with *All of Jason's 3*.
+5. **Different takes.** *Navy Pier*: Sarah *Would skip it if you're short on time*, Jason *Thinks first-time visitors should experience it once*. Both stand. Nothing resolves it.
+6. **What only one person mentioned**, set exactly as large as everything else: *Just as worth keeping as anything that came up twice.*
+
+Connections are ordered by where they appear in the answers, never by how many people said them. People are ordered by when they answered. Nothing says best, top, right, winner or most credible; *Mentioned by Sarah and Jason* is as far as counting goes. A share button makes a clean picture of the question, *Perspectives from Jason, Maya and Carlos*, and one point from each, with a reminder that these are other people's answers, shared with you.
+
+**When answers arrive.** One notice however many came back at once: *Maya sent their 3 · You now have 3 perspectives on your Chicago question*. Home groups what's still out by question (*Maya and Daniel · 2 of 4 answered · Sent 3 days ago*), and an answer's own page says *One of 3 perspectives*, leading back to the question.
+
+**How connections are found, and kept honest.** The perspectives are a layer on top of the answers, stored separately, pointing at people's things by id. They never change anyone's words, and they're read again only when an answer arrives or changes.
+- **Live:** `POST /api/perspectives` gives the editor the question and every answer, with a brief of its own ([`server/perspectivesPrompt.ts`](server/perspectivesPrompt.ts)): notice *same*, *related* and *different*, be conservative (*"Hire slowly" and "Hire senior people" are not the same idea*), keep each person's reason, never judge, rank, count, resolve or add.
+- **Grounding** ([`src/lib/perspectives/grounding.ts`](src/lib/perspectives/grounding.ts)), on the server and again in the app: every connection must point at real things from at least two different people; a thing joins at most one connection and one different take; labels, notes and angles may not name anything nobody said, use a judging word (*best*, *right*, *better*…) the people didn't use themselves, use jargon (*cluster*, *similarity*, *confidence*…), or guess anyone's pronouns; a different take never carries a note.
+- **Preview** (no key, static hosting): [`src/lib/perspectives/notice.ts`](src/lib/perspectives/notice.ts) connects only the plainest things: the same name in two answers (*Lou Malnati's*, *Lakefront Trail*), the same idea in nearly the same words (*architecture boat tour*), and one person skipping what another recommends (*skip Navy Pier* next to *See Navy Pier once*). Each angle is a sentence from that person's own answer, and the page says it's a preview.
+
+**Samples.** Three questions come with the app: *What are three things I shouldn't miss in Chicago?* (Sarah and Jason answered, Maya hasn't opened it, Daniel has), *What are three things first-time founders should know?* (Jason and Carlos in person, Maya by link), and *What are three things you wish you knew at 25?* (Dad and Mom in person five months ago, Priya and Professor Reyes by link since). In the preview, answer Maya's or Daniel's link yourself and watch the perspectives grow. Each person answers a sample as themselves, so four people asked the same question never all say the same thing.
+
 ## How the three are chosen
 
 Real answers are messy, and the editor is told to expect that (full brief in [`server/prompt.ts`](server/prompt.ts)):
@@ -154,7 +182,7 @@ These rules are covered by tests in [`tests/`](tests). They include a check that
 ```bash
 npm install
 npm run dev          # http://localhost:5173 (also exposed on your LAN for phone testing)
-npm test             # grounding, samples, library, people, relay and formatting tests
+npm test             # grounding, samples, library, people, relay, perspectives and formatting tests
 npm run build        # typecheck + production build
 ```
 
@@ -180,10 +208,13 @@ Microphone access needs a secure context: `localhost`, or HTTPS when testing on 
 server/
   prompt.ts            The editor's brief: what the model may and may not do
   distill.ts           Claude call: structured output, then grounding
-  api.ts               GET /api/health, POST /api/distill, /api/remote/… (Node middleware, mounted in Vite)
+  perspectivesPrompt.ts, perspectives.ts
+                       Reading several answers side by side: the brief, the call, grounding
+  api.ts               GET /api/health, POST /api/distill, POST /api/perspectives, /api/remote/… (Node middleware)
   relay.ts             The relay's file storage on a server
 src/
   App.tsx              Routes: / · /library · /library/people/:id · /library/topics/:key · /library/:id · /you · /you/profile
+                       · /library/questions/:group (a question's page) · /library/questions/:group/perspectives
                        · /sent · /sent/:id · /ask · /a/:id (the answer page, outside the app's tabs)
   styles/              tokens.css (color, type, space, motion), base.css, transitions.css
   components/          Mark (the three-stroke motif), ListeningVisual (the three listening forms), Orb,
@@ -193,12 +224,14 @@ src/
                        PersonEditSheet (name, note, photo), MergeSheet
   screens/
     HomeScreen, LibraryScreen, PersonScreen, TopicScreen, DetailScreen, YouScreen, ProfileScreen,
-    SentScreen, QuestionScreen
+    SentScreen, QuestionScreen, QuestionHubScreen, PerspectivesScreen
     answer/            AnswerFlow: the page someone opens from a link
     capture/           CaptureFlow (the state machine) and one component per step
   lib/
     store.tsx          Conversations, people and settings (localStorage); renames, merges and deletes stay consistent
     people.ts          People records: linking, merging, removing, likely duplicates, "asked before"
+    questions.ts       A question as its own thing: everyone asked, every answer, in time order
+    perspectives/      contract.ts, grounding.ts, notice.ts (preview), read.ts (live or preview, merge), basis.ts
     remote/            contract.ts, core.ts (the relay, wherever it runs), relay.ts (server or browser, links),
                        receive.ts (answers → conversations), useRemoteSync.ts, invite.ts, describe.ts
     shareCard.ts       The shareable picture of a 3 Things
@@ -224,4 +257,4 @@ Your Library stays on the device: conversations, people and your profile in `loc
 
 ## Deliberately not built yet
 
-Social features, public profiles, discovery, feeds, followers, likes, comments, messaging, chat, group chats, public answers or question boards, votes, rankings, AI aggregation across people, maps, restaurant APIs, recommendations, AI summaries across people, and gamification. Sharing is a basic share sheet only. Also not built: friend requests, follows, contacts syncing, facial recognition, automatic photo capture, online status, account linking and shared profiles. People are small private records that conversations point to; topics and places are derived from conversations. Conversations saved before people had records are linked to them by name on load.
+Social features, public profiles, discovery, feeds, followers, likes, comments, messaging, chat, group chats, public answers or question boards, public polls, community or anonymous crowdsourced answers, votes, upvotes, popularity or credibility scores, rankings of answers or experts, an AI "best answer" or a summary that stands in for what people said, maps, restaurant APIs, recommendations, and gamification. Perspectives only point at what people said; the answers stay theirs. Sharing is a basic share sheet only. Also not built: friend requests, follows, contacts syncing, facial recognition, automatic photo capture, online status, account linking and shared profiles. People are small private records that conversations point to; topics and places are derived from conversations. Conversations saved before people had records are linked to them by name on load.

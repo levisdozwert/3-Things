@@ -199,3 +199,15 @@
   flex-shrink: 0;
   color: var(--ember-ink);
 }
+
+/* One perspective among others: the way back to the question. */
+.together {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  color: var(--ember-ink);
+}

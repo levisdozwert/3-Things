@@ -77,6 +77,38 @@ export interface Capture {
   remote?: { sentAt: string; answeredAt: string };
   /** Arrived from someone and not opened yet. */
   unseen?: boolean;
+  /**
+   * The question this answers, when the same question went to several people:
+   * each person's answer stays its own conversation, and they share a group.
+   */
+  group?: string;
+}
+
+/**
+ * How answers to one question connect, sitting on top of them. It points at
+ * people's things and never changes them: whatever the grouping, each answer
+ * stays exactly as its person gave it.
+ */
+export interface PerspectiveTheme {
+  /**
+   * same: they named the same thing ("Lou Malnati's").
+   * related: different ideas that clearly connect ("watching the money").
+   * different: they see the same thing differently ("Navy Pier").
+   */
+  kind: "same" | "related" | "different";
+  /** A few neutral words for what connects them. */
+  label: string;
+  /** How they connect, grounded in what they said. Never who is right. */
+  note?: string;
+  members: { captureId: string; thingId: string; angle?: string }[];
+}
+
+export interface Perspectives {
+  /** The answers these were read from; when they change, they're read again. */
+  basis: string;
+  themes: PerspectiveTheme[];
+  /** editor: read by the editor model. preview: noticed on this device. sample: ships with the app. */
+  by: "editor" | "preview" | "sample";
 }
 
 /** Who answered, as the app knows them: someone in the Library, or a new name. */

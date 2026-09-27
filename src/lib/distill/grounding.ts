@@ -76,7 +76,10 @@ function sentences(text: string): string[] {
  * the first word of a sentence) and figures that appear nowhere in the sources.
  */
 export function unsupportedTerms(text: string, sources: Sources): string[] {
-  const known = new Set(words(`${sources.transcript} ${sources.question ?? ""} ${sources.person ?? ""}`));
+  // "Lou Malnati's" said out loud supports "Malnati's" (and "Malnati") written down.
+  const known = new Set(
+    words(`${sources.transcript} ${sources.question ?? ""} ${sources.person ?? ""}`).flatMap((w) => [w, w.replace(/'s$/, "")]),
+  );
   const unsupported: string[] = [];
 
   for (const sentence of sentences(text)) {

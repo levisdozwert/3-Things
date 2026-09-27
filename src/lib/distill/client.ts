@@ -44,20 +44,48 @@ function tokens(text: string): string[] {
   return text.toLowerCase().match(/[a-z'’]+/g) ?? [];
 }
 
-/** Picks the sample conversation closest to the question the user asked. */
-export function closestSample(question: string): SampleConversation {
-  const asked = new Set(tokens(question));
-  let best = sampleConversations.find((c) => c.key === "learn-from-you")!;
+const fold = (text: string) => text.trim().toLowerCase().replace(/[’‘]/g, "'");
+
+function hash(text: string): number {
+  let h = 0;
+  for (const ch of text) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h;
+}
+
+/**
+ * Picks the sample conversation closest to the question the user asked. When
+ * several people are asked the same question, each one answers as themselves:
+ * their own sample if there is one, otherwise one that belongs to nobody in
+ * particular, so a preview never hands Maya exactly what Sarah said.
+ */
+export function closestSample(question: string, voice?: string): SampleConversation {
+  const asked = fold(question);
+  const who = fold(voice ?? "");
+  const pick = (candidates: SampleConversation[]) => {
+    if (!who) return candidates[0];
+    const theirs = candidates.find((c) => fold(c.person) === who);
+    if (theirs) return theirs;
+    const unnamed = candidates.filter((c) => !c.person);
+    const pool = unnamed.length > 0 ? unnamed : candidates;
+    return pool[hash(who) % pool.length];
+  };
+
+  const same = sampleConversations.filter((c) => fold(c.question) === asked);
+  if (same.length > 0 && (!who || same.some((c) => !c.person || fold(c.person) === who))) return pick(same);
+
+  const words = new Set(tokens(question));
+  let best: SampleConversation[] = [];
   let bestScore = 0;
   for (const convo of sampleConversations) {
-    if (convo.question.toLowerCase() === question.trim().toLowerCase()) return convo;
-    const score = convo.keywords.reduce((n, k) => n + (asked.has(k) ? 1 : 0), 0);
+    // Naming the same place counts for a lot: a Boston question is never answered about Chicago.
+    const place = convo.place && tokens(convo.place).every((w) => words.has(w)) ? 3 : 0;
+    const score = convo.keywords.reduce((n, k) => n + (words.has(k) ? 1 : 0), place);
     if (score > bestScore) {
-      best = convo;
+      best = [convo];
       bestScore = score;
-    }
+    } else if (score === bestScore && score > 0) best.push(convo);
   }
-  return best;
+  return best.length > 0 ? pick(best) : sampleConversations.find((c) => c.key === "learn-from-you")!;
 }
 
 export interface Distilled {
@@ -90,7 +118,7 @@ export async function findThreeThings(req: DistillRequest, { signal, preview }: 
   const mode = preview ? "preview" : await detectMode();
 
   if (mode === "preview") {
-    const sample = closestSample(req.question);
+    const sample = closestSample(req.question, req.person);
     const response = groundResponse(
       { things: sample.things.map(asThing), extra: sample.extra, topic: sample.topic, place: sample.place, answered: true },
       { transcript: sample.transcript, question: sample.question, person: req.person },
@@ -123,7 +151,7 @@ export async function followUpThings(
   const mode = preview ? "preview" : await detectMode();
 
   if (mode === "preview") {
-    const sample = sampleConversations.find((c) => c.key === sampleKey) ?? closestSample(req.question);
+    const sample = sampleConversations.find((c) => c.key === sampleKey) ?? closestSample(req.question, req.person);
     const script = followUp.kind === "more" ? sample.followUps?.more : sample.followUps?.clarify;
     if (!script) return [];
     const things = "things" in script ? script.things : [script.thing];

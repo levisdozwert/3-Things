@@ -161,3 +161,130 @@
     margin-top: 18px;
   }
 }
+
+/* One person, or a few. A quiet pair, not a mode switch. */
+.howMany {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: var(--paper-sunken);
+}
+
+.howManyOption {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  font-size: var(--text-small);
+  font-weight: 560;
+  color: var(--ink-3);
+  transition:
+    background var(--t-fast) var(--ease-soft),
+    color var(--t-fast) var(--ease-soft);
+}
+
+.howManyOption[aria-checked="true"] {
+  background: var(--paper-raised);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(28 25 22 / 0.08);
+}
+
+/* A few people: tick the ones you'd like to hear from. */
+.few {
+  margin-top: 6px;
+}
+
+.few > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  padding: 8px 0;
+  text-align: left;
+  transition: opacity var(--t-fast) var(--ease-soft);
+}
+
+.pick:active {
+  opacity: 0.6;
+}
+
+.tick {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  color: var(--on-ember);
+  transition:
+    background var(--t-fast) var(--ease-soft),
+    box-shadow var(--t-fast) var(--ease-soft);
+}
+
+.pick[aria-pressed="true"] .tick {
+  background: var(--ember);
+  box-shadow: none;
+}
+
+.pickText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pickName {
+  font-size: 1.0625rem;
+  font-weight: 580;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickMeta {
+  margin-top: 1px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.addSomeone {
+  margin-top: 10px;
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding-left: 0;
+  border-top: 1px solid var(--line);
+  font-size: 1.0625rem;
+  font-weight: 580;
+  color: var(--ember-ink);
+}
+
+.few:empty + .addButton {
+  border-top: 0;
+}
+
+.addPlus {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--ember-soft);
+}

@@ -57,6 +57,8 @@ export function receive(
       origin: "recording",
       remote: { sentAt: outgoing.sentAt, answeredAt: answer.answeredAt },
       unseen: true,
+      // One question, however many people it went to: each answer stays its own.
+      group: outgoing.group,
     };
   });
 

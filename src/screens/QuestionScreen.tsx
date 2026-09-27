@@ -5,6 +5,7 @@ import { Button, IconButton } from "../components/Button";
 import { Sheet } from "../components/Sheet";
 import { relativeDay } from "../lib/format";
 import { sentTo, sentWhen, stateLabel } from "../lib/remote/describe";
+import { answeredLine, findQuestion } from "../lib/questions";
 import { copyInvite, shareInvite } from "../lib/remote/invite";
 import { answerLink, relayFor } from "../lib/remote/relay";
 import { askerName, useStore } from "../lib/store";
@@ -19,7 +20,7 @@ import styles from "./SentScreen.module.css";
  */
 export function QuestionScreen() {
   const { id = "" } = useParams();
-  const { getOutgoing, outgoing, people, getCapture, settings, updateOutgoing, removeOutgoing } = useStore();
+  const { getOutgoing, outgoing, people, captures, getCapture, settings, updateOutgoing, removeOutgoing } = useStore();
   const navigate = useNavigate();
   const back = useBack("/sent");
   const question = getOutgoing(decodeURIComponent(id));
@@ -50,6 +51,9 @@ export function QuestionScreen() {
   const waiting = question.state !== "answered";
   const invite = { asker: askerName(settings), question: question.question, link: answerLink(question.id) };
   const alsoSent = outgoing.filter((o) => o.group === question.group && o.id !== question.id);
+  // Asked of several people: the whole question, with everyone's answers, is one tap away.
+  const whole = findQuestion(question.group, captures, outgoing, people);
+  const several = whole && whole.people > 1 ? whole : undefined;
 
   const remind = async () => {
     const result = await shareInvite({ ...invite, reminder: true });
@@ -81,6 +85,11 @@ export function QuestionScreen() {
           {name && question.state === "opened" && ` · ${stateLabel(question)}`}
           {question.remindedAt && ` · Reminded ${relativeDay(question.remindedAt).toLowerCase()}`}
         </p>
+        {several && (
+          <Link to={`/library/questions/${encodeURIComponent(several.key)}`} viewTransition className={styles.link}>
+            Asked {several.people} people · {answeredLine(several).toLowerCase()}
+          </Link>
+        )}
       </header>
 
       {answers.length > 0 && (

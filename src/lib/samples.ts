@@ -1,5 +1,6 @@
 import { personIdFor } from "./library";
-import type { Capture, Outgoing } from "./types";
+import { basisOf } from "./perspectives/basis";
+import type { Capture, Outgoing, Perspectives, PerspectiveTheme } from "./types";
 
 /**
  * Sample conversations.
@@ -47,8 +48,11 @@ export interface SampleConversation {
     daysAgo: number;
     time: string;
     keptClose?: boolean;
-    /** Answered from a link: sent this many days before, and not opened yet. */
+    /** Answered from a link: sent this many days before, and not opened yet (unless `seen`). */
     sentDaysBefore?: number;
+    seen?: boolean;
+    /** One of several people asked the same question. */
+    group?: string;
   };
 }
 
@@ -789,10 +793,10 @@ export const sampleConversations: SampleConversation[] = [
     ],
   },
   {
-    // Preview: what someone might say when you send "places in Chicago" to them.
+    // Preview: what someone might say when you send the Chicago question to them.
     key: "chicago",
     person: "",
-    question: "What are three places I shouldn't miss in Chicago?",
+    question: "What are three things I shouldn't miss in Chicago?",
     topic: "Travel",
     place: "Chicago",
     keywords: ["chicago", "places", "miss", "shouldn't", "shouldn’t"],
@@ -814,6 +818,297 @@ export const sampleConversations: SampleConversation[] = [
         headline: "Dinner in Andersonville or Logan Square",
         detail: "Take the train out of downtown to where people actually live.",
         quote: "Take the train up to Andersonville or Logan Square for a neighborhood dinner. That's where people actually live",
+      },
+    ],
+  },
+
+  // ── One question, several people ─────────────────────────
+  // Each person answered on their own. Their answers stay separate; the
+  // Perspectives view reads them side by side (see samplePerspectives).
+  {
+    key: "chicago-sarah",
+    person: "Sarah",
+    question: "What are three things I shouldn't miss in Chicago?",
+    topic: "Travel",
+    place: "Chicago",
+    keywords: ["chicago"],
+    durationSec: 58,
+    seed: { daysAgo: 2, time: "21:15", sentDaysBefore: 1, seen: true, group: "sample-q-chicago" },
+    transcript:
+      "Okay, Chicago. First, the architecture boat tour. Everyone says it, and they're not wrong, you see the whole city from the river. Go at sunset if you can. Second, Lou Malnati's. Go for the pizza. The buttery crust is the whole point, so get the deep dish. And third, honestly, if you're short on time, skip Navy Pier. It's mostly chain restaurants and a Ferris wheel. Walk the Lakefront Trail instead. It's free and the views are so much better.",
+    things: [
+      {
+        headline: "Take the architecture boat tour",
+        detail: "You see the whole city from the river. Go at sunset if you can.",
+        quote: "you see the whole city from the river",
+      },
+      {
+        headline: "Deep dish at Lou Malnati's",
+        detail: "Go for the pizza itself.",
+        quote: "Go for the pizza. The buttery crust is the whole point",
+        said: "The buttery crust is the whole point",
+      },
+      {
+        headline: "Walk the Lakefront Trail",
+        detail: "If you're short on time, skip Navy Pier and walk the trail instead. It's free and the views are so much better.",
+        quote: "Walk the Lakefront Trail instead. It's free and the views are so much better.",
+      },
+    ],
+  },
+  {
+    key: "chicago-jason",
+    person: "Jason",
+    question: "What are three things I shouldn't miss in Chicago?",
+    topic: "Travel",
+    place: "Chicago",
+    keywords: ["chicago"],
+    durationSec: 66,
+    seed: { daysAgo: 0, time: "07:50", sentDaysBefore: 3, group: "sample-q-chicago" },
+    transcript:
+      "Ha, okay. Lou Malnati's, that's number one. It's where I take every single visitor, it's kind of a tradition at this point. You have to try real Chicago deep dish once. Two, and people will fight me on this, but see Navy Pier once. Yeah, it's touristy, but first-time visitors should experience it once. In the summer there are fireworks over the lake. And three, a Cubs game at Wrigley Field. Even if you don't care about baseball. Sit in the bleachers.",
+    things: [
+      {
+        headline: "Lou Malnati's for deep dish",
+        detail: "It's where I take every single visitor. You have to try real Chicago deep dish once.",
+        quote: "It's where I take every single visitor",
+      },
+      {
+        headline: "See Navy Pier once",
+        detail: "It's touristy, but first-time visitors should experience it once. In the summer there are fireworks over the lake.",
+        quote: "see Navy Pier once. Yeah, it's touristy, but first-time visitors should experience it once",
+      },
+      {
+        headline: "A Cubs game at Wrigley Field",
+        detail: "Even if you don't care about baseball. Sit in the bleachers.",
+        quote: "a Cubs game at Wrigley Field. Even if you don't care about baseball.",
+      },
+    ],
+  },
+  {
+    // Preview: what Daniel says when the Chicago question reaches Daniel.
+    key: "chicago-daniel",
+    person: "Daniel",
+    question: "What are three things I shouldn't miss in Chicago?",
+    topic: "Travel",
+    place: "Chicago",
+    keywords: ["chicago"],
+    durationSec: 61,
+    transcript:
+      "Chicago, nice. Rent a bike and ride the Lakefront Trail, north from downtown. On a clear morning there's nothing like it. Then get a hot dog at Portillo's. No ketchup, that's the rule. And if you like music, the Green Mill for jazz. It's a tiny old bar up in Uptown and the music goes late.",
+    things: [
+      {
+        headline: "Bike the Lakefront Trail",
+        detail: "Rent a bike and ride it north from downtown. On a clear morning there's nothing like it.",
+        quote: "Rent a bike and ride the Lakefront Trail, north from downtown",
+      },
+      {
+        headline: "A hot dog at Portillo's",
+        detail: "No ketchup.",
+        quote: "get a hot dog at Portillo's",
+        said: "No ketchup, that's the rule.",
+      },
+      {
+        headline: "Jazz at the Green Mill",
+        detail: "It's a tiny old bar up in Uptown, and the music goes late.",
+        quote: "the Green Mill for jazz. It's a tiny old bar up in Uptown and the music goes late",
+      },
+    ],
+  },
+  {
+    key: "founders-jason",
+    person: "Jason",
+    question: "What are three things first-time founders should know?",
+    topic: "Startup",
+    keywords: ["founders"],
+    durationSec: 88,
+    seed: { daysAgo: 12, time: "18:40", group: "sample-q-founders" },
+    transcript:
+      "Okay. First-time founders. One, hire carefully. Hire more slowly than you think you need to, because every early hire sets the culture, and you can't really undo that. Two, watch cash flow, not just revenue. Revenue is vanity if the cash isn't there. We had our best month ever and almost missed payroll. And three, talk to customers early. Before you build anything. Most founders wait way too long.",
+    things: [
+      {
+        headline: "Hire carefully",
+        detail: "Hire more slowly than you think you need to. Every early hire sets the culture, and you can't really undo that.",
+        quote: "hire carefully. Hire more slowly than you think you need to",
+      },
+      {
+        headline: "Watch cash flow, not just revenue",
+        detail: "We had our best month ever and almost missed payroll.",
+        quote: "watch cash flow, not just revenue",
+        said: "Revenue is vanity if the cash isn't there.",
+      },
+      {
+        headline: "Talk to customers early",
+        detail: "Before you build anything. Most founders wait way too long.",
+        quote: "talk to customers early. Before you build anything.",
+      },
+    ],
+  },
+  {
+    key: "founders-carlos",
+    person: "Carlos",
+    question: "What are three things first-time founders should know?",
+    topic: "Startup",
+    keywords: ["founders"],
+    durationSec: 74,
+    seed: { daysAgo: 11, time: "12:20", group: "sample-q-founders" },
+    transcript:
+      "Three things. Protect the relationship with your co-founder. More startups die from founders falling out than from competitors. Learn to sell it yourself before you hire anyone to sell. You can't hand off something you don't understand. And keep burn low. Low burn buys you time, and time is how you figure things out.",
+    things: [
+      {
+        headline: "Protect your co-founder relationship",
+        detail: "More startups die from founders falling out than from competitors.",
+        quote: "Protect the relationship with your co-founder",
+      },
+      {
+        headline: "Learn to sell it yourself",
+        detail: "Do it before you hire anyone to sell. You can't hand off something you don't understand.",
+        quote: "Learn to sell it yourself before you hire anyone to sell",
+      },
+      {
+        headline: "Keep burn low",
+        detail: "Low burn buys you time, and time is how you figure things out.",
+        quote: "keep burn low. Low burn buys you time",
+      },
+    ],
+  },
+  {
+    key: "founders-maya",
+    person: "Maya",
+    question: "What are three things first-time founders should know?",
+    topic: "Startup",
+    keywords: ["founders"],
+    durationSec: 69,
+    seed: { daysAgo: 9, time: "09:10", sentDaysBefore: 3, seen: true, group: "sample-q-founders" },
+    transcript:
+      "Hi! Okay. Ship earlier than feels comfortable. Your first version should embarrass you a little. People tell you more by using something than by answering questions about it. Build distribution from day one, don't assume a good product finds its own users. And don't hire ahead of demand. Every hire is a monthly cost. Wait until the work is really there.",
+    things: [
+      {
+        headline: "Ship earlier than feels comfortable",
+        detail: "Your first version should embarrass you a little. People tell you more by using something than by answering questions about it.",
+        quote: "Ship earlier than feels comfortable",
+      },
+      {
+        headline: "Build distribution from day one",
+        detail: "Don't assume a good product finds its own users.",
+        quote: "Build distribution from day one, don't assume a good product finds its own users",
+      },
+      {
+        headline: "Don't hire ahead of demand",
+        detail: "Every hire is a monthly cost. Wait until the work is really there.",
+        quote: "don't hire ahead of demand. Every hire is a monthly cost",
+      },
+    ],
+  },
+  {
+    key: "at25-dad",
+    person: "Dad",
+    question: "What are three things you wish you knew at 25?",
+    topic: "Life",
+    keywords: ["25", "wish"],
+    durationSec: 83,
+    seed: { daysAgo: 150, time: "19:05", keptClose: true, group: "sample-q-at25" },
+    transcript:
+      "At twenty-five? Save something from every paycheck, even when it's tiny. It's not about the money, it's about having options later. Stay long enough somewhere to get really good at something. I see people hop every year and never go deep. And take care of your body now. Your back at fifty remembers what you did at twenty-five.",
+    things: [
+      {
+        headline: "Save something from every paycheck",
+        detail: "Even when it's tiny. It's about having options later.",
+        quote: "Save something from every paycheck, even when it's tiny",
+      },
+      {
+        headline: "Stay long enough to get really good at something",
+        detail: "People who hop every year never go deep.",
+        quote: "Stay long enough somewhere to get really good at something",
+      },
+      {
+        headline: "Take care of your body now",
+        detail: "",
+        quote: "take care of your body now",
+        said: "Your back at fifty remembers what you did at twenty-five.",
+      },
+    ],
+  },
+  {
+    key: "at25-mom",
+    person: "Mom",
+    question: "What are three things you wish you knew at 25?",
+    topic: "Life",
+    keywords: ["25", "wish"],
+    durationSec: 71,
+    seed: { daysAgo: 148, time: "20:30", group: "sample-q-at25" },
+    transcript:
+      "Oh, twenty-five. Put a little away every month, so a bad month never turns into an emergency. Keep up with your friends. Call them, visit them. Friendships need looking after just like anything else. And you don't have to have it all figured out. Nobody does at twenty-five. I certainly didn't.",
+    things: [
+      {
+        headline: "Put a little away every month",
+        detail: "So a bad month never turns into an emergency.",
+        quote: "Put a little away every month, so a bad month never turns into an emergency",
+      },
+      {
+        headline: "Keep up with your friends",
+        detail: "Call them, visit them. Friendships need looking after just like anything else.",
+        quote: "Keep up with your friends",
+      },
+      {
+        headline: "You don't have to have it all figured out",
+        detail: "Nobody does at twenty-five.",
+        quote: "you don't have to have it all figured out. Nobody does at twenty-five",
+      },
+    ],
+  },
+  {
+    key: "at25-priya",
+    person: "Priya",
+    question: "What are three things you wish you knew at 25?",
+    topic: "Life",
+    keywords: ["25", "wish"],
+    durationSec: 49,
+    seed: { daysAgo: 61, time: "13:45", sentDaysBefore: 2, seen: true, group: "sample-q-at25" },
+    transcript:
+      "Ask for the raise. Seriously. The worst they say is not yet, and now they know you're thinking about it. Don't stay somewhere just because it's safe. If you've stopped learning, that's your sign. And find the people who make you better, and spend more time with them.",
+    things: [
+      {
+        headline: "Ask for the raise",
+        detail: "The worst they say is not yet, and now they know you're thinking about it.",
+        quote: "Ask for the raise",
+      },
+      {
+        headline: "Don't stay somewhere just because it's safe",
+        detail: "If you've stopped learning, that's your sign.",
+        quote: "Don't stay somewhere just because it's safe",
+      },
+      {
+        headline: "Find the people who make you better",
+        detail: "Spend more time with them.",
+        quote: "find the people who make you better",
+      },
+    ],
+  },
+  {
+    key: "at25-reyes",
+    person: "Professor Reyes",
+    question: "What are three things you wish you knew at 25?",
+    topic: "Life",
+    keywords: ["25", "wish"],
+    durationSec: 77,
+    seed: { daysAgo: 20, time: "10:20", sentDaysBefore: 2, seen: true, group: "sample-q-at25" },
+    transcript:
+      "Good question. Read outside your field. The best ideas I ever had came from books that had nothing to do with my work. Take risks while they're cheap. At twenty-five, failing costs you a year, not a family's income. And nobody is watching you as closely as you think. That feeling holds so many people back.",
+    things: [
+      {
+        headline: "Read outside your field",
+        detail: "The best ideas I ever had came from books that had nothing to do with my work.",
+        quote: "Read outside your field",
+      },
+      {
+        headline: "Take risks while they're cheap",
+        detail: "At twenty-five, failing costs you a year, not a family's income.",
+        quote: "Take risks while they're cheap",
+      },
+      {
+        headline: "Nobody is watching you as closely as you think",
+        detail: "That feeling holds so many people back.",
+        quote: "nobody is watching you as closely as you think",
       },
     ],
   },
@@ -845,13 +1140,14 @@ export function seedCaptures(now = new Date()): Capture[] {
       personIds: c.person ? [personIdFor(c.person)] : [],
       ...(c.place ? { place: c.place } : {}),
       ...(c.seed!.keptClose ? { keptClose: true } : {}),
+      ...(c.seed!.group ? { group: c.seed!.group } : {}),
       ...(c.seed!.sentDaysBefore !== undefined
         ? {
             remote: {
               sentAt: atDaysAgo(c.seed!.daysAgo + c.seed!.sentDaysBefore, "19:30", now),
               answeredAt: atDaysAgo(c.seed!.daysAgo, c.seed!.time, now),
             },
-            unseen: true,
+            ...(c.seed!.seen ? {} : { unseen: true }),
           }
         : {}),
     }));
@@ -862,24 +1158,145 @@ export function seedCaptures(now = new Date()): Capture[] {
  * in this browser's relay, so a preview can answer them too.
  */
 export function sampleOutgoing(now = new Date()): Outgoing[] {
-  const ask = (key: string, person: string, question: string, daysAgo: number, state: Outgoing["state"]): Outgoing => ({
+  const ask = (
+    key: string,
+    person: string,
+    question: string,
+    daysAgo: number,
+    state: Outgoing["state"],
+    { group = `sample-ask-${key}`, time = "18:10", answer }: { group?: string; time?: string; answer?: string } = {},
+  ): Outgoing => ({
     id: `sample-ask-${key}`,
     ownerKey: "sample",
     via: "local",
     question,
     speakers: [{ id: personIdFor(person) }],
     person,
-    group: `sample-ask-${key}`,
-    sentAt: atDaysAgo(daysAgo, "18:10", now),
+    group,
+    sentAt: atDaysAgo(daysAgo, time, now),
     state,
-    answers: [],
+    answers: answer ? [`sample-${answer}`] : [],
     wantsAudio: false,
     sample: true,
   });
+  const chicago = "What are three things I shouldn't miss in Chicago?";
+  const inChicago = (person: string, state: Outgoing["state"], minute: number, answer?: string) =>
+    ask(`chicago-${person.toLowerCase()}`, person, chicago, 3, state, { group: "sample-q-chicago", time: `19:3${minute}`, answer });
   return [
     ask("jason", "Jason", "What are three things you'd tell someone starting their first job?", 1, "opened"),
     ask("mom", "Mom", "What are three recipes every kid should learn?", 3, "sent"),
+    // One question, four people: two have answered, one opened it, one hasn't yet.
+    inChicago("Sarah", "answered", 0, "chicago-sarah"),
+    inChicago("Jason", "answered", 1, "chicago-jason"),
+    inChicago("Maya", "sent", 2),
+    inChicago("Daniel", "opened", 3),
+    ask("founders-maya", "Maya", "What are three things first-time founders should know?", 12, "answered", {
+      group: "sample-q-founders",
+      time: "19:30",
+      answer: "founders-maya",
+    }),
+    // Asked in person first, then by link months later: the question kept growing.
+    ask("at25-priya", "Priya", "What are three things you wish you knew at 25?", 63, "answered", {
+      group: "sample-q-at25",
+      time: "19:30",
+      answer: "at25-priya",
+    }),
+    ask("at25-reyes", "Professor Reyes", "What are three things you wish you knew at 25?", 22, "answered", {
+      group: "sample-q-at25",
+      time: "19:30",
+      answer: "at25-reyes",
+    }),
   ];
+}
+
+/**
+ * How the sample questions' answers connect, as the editor would read them.
+ * Every connection points at the samples' own things, and each angle comes
+ * from what that person said.
+ */
+const SAMPLE_THEMES: Record<string, PerspectiveTheme[]> = {
+  "sample-q-chicago": [
+    {
+      kind: "same",
+      label: "Lou Malnati's",
+      note: "Same place, different reasons.",
+      members: [
+        { captureId: "sample-chicago-sarah", thingId: "sample-chicago-sarah-1", angle: "Goes for the pizza itself" },
+        { captureId: "sample-chicago-jason", thingId: "sample-chicago-jason-0", angle: "Takes every single visitor there" },
+      ],
+    },
+    {
+      kind: "different",
+      label: "Navy Pier",
+      members: [
+        { captureId: "sample-chicago-sarah", thingId: "sample-chicago-sarah-2", angle: "Would skip it if you're short on time" },
+        { captureId: "sample-chicago-jason", thingId: "sample-chicago-jason-1", angle: "Thinks first-time visitors should experience it once" },
+      ],
+    },
+  ],
+  "sample-q-founders": [
+    {
+      kind: "related",
+      label: "Being careful about hiring",
+      note: "A similar caution, for different reasons.",
+      members: [
+        { captureId: "sample-founders-jason", thingId: "sample-founders-jason-0", angle: "Every early hire sets the culture" },
+        { captureId: "sample-founders-maya", thingId: "sample-founders-maya-2", angle: "Every hire is a monthly cost" },
+      ],
+    },
+    {
+      kind: "related",
+      label: "Watching the money",
+      note: "Both are about controlling spending.",
+      members: [
+        { captureId: "sample-founders-jason", thingId: "sample-founders-jason-1", angle: "Watch cash flow, not just revenue" },
+        { captureId: "sample-founders-carlos", thingId: "sample-founders-carlos-2", angle: "Low burn buys you time" },
+      ],
+    },
+    {
+      kind: "different",
+      label: "Learning from customers",
+      members: [
+        { captureId: "sample-founders-jason", thingId: "sample-founders-jason-2", angle: "Talk to customers before you build anything" },
+        {
+          captureId: "sample-founders-maya",
+          thingId: "sample-founders-maya-0",
+          angle: "People tell you more by using something than by answering questions",
+        },
+      ],
+    },
+  ],
+  "sample-q-at25": [
+    {
+      kind: "same",
+      label: "Putting money aside",
+      note: "Same habit, different reasons.",
+      members: [
+        { captureId: "sample-at25-dad", thingId: "sample-at25-dad-0", angle: "So you have options later" },
+        { captureId: "sample-at25-mom", thingId: "sample-at25-mom-0", angle: "So a bad month never turns into an emergency" },
+      ],
+    },
+    {
+      kind: "different",
+      label: "Staying in one place",
+      members: [
+        { captureId: "sample-at25-dad", thingId: "sample-at25-dad-1", angle: "Stay long enough to get really good at something" },
+        { captureId: "sample-at25-priya", thingId: "sample-at25-priya-1", angle: "If you've stopped learning, that's your sign" },
+      ],
+    },
+  ],
+};
+
+export function samplePerspectives(now = new Date()): Record<string, Perspectives> {
+  const captures = seedCaptures(now);
+  return Object.fromEntries(
+    Object.entries(SAMPLE_THEMES).map(([group, themes]) => {
+      const answers = captures
+        .filter((c) => c.group === group)
+        .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+      return [group, { basis: basisOf(answers), themes, by: "sample" as const }];
+    }),
+  );
 }
 
 /**

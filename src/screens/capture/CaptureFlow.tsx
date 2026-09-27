@@ -11,6 +11,7 @@ import type { DistilledThing } from "../../lib/distill/contract";
 import { newId, tidyQuestion } from "../../lib/format";
 import { listPeople } from "../../lib/library";
 import { isNew, nameKey, speakerLabel, type Speaker } from "../../lib/people";
+import { findQuestion, namesOf } from "../../lib/questions";
 import { copyInvite, shareInvite } from "../../lib/remote/invite";
 import { answerLink, detectRelay, relayFor } from "../../lib/remote/relay";
 import { askerName, useStore } from "../../lib/store";
@@ -18,6 +19,7 @@ import { withTransition, type Direction } from "../../lib/transition";
 import type { Capture, Recording, Thing } from "../../lib/types";
 import { AskStep } from "./AskStep";
 import { EditStep } from "./EditStep";
+import { FewPeopleStep } from "./FewPeopleStep";
 import { HowStep } from "./HowStep";
 import flow from "./Flow.module.css";
 import { ListeningStep, type ListeningProblem } from "./ListeningStep";
@@ -26,6 +28,7 @@ import { ProcessingStep } from "./ProcessingStep";
 import { ReadyStep } from "./ReadyStep";
 import { ReviewStep } from "./ReviewStep";
 import { SavedStep } from "./SavedStep";
+import { SendEachStep, type Delivery } from "./SendEachStep";
 import { SentStep } from "./SentStep";
 import { ShareStep } from "./ShareStep";
 import { WhoStep } from "./WhoStep";
@@ -44,7 +47,10 @@ type Step =
   // Sending it: they answer on their own phone.
   | "send-who"
   | "share"
-  | "sent";
+  | "sent"
+  // The same question to a few people, each asked on their own.
+  | "send-few"
+  | "send-each";
 
 /** A question on the relay, created once and reused if sharing is tried again. */
 interface Prepared {
@@ -72,15 +78,18 @@ const MIN_FOLLOW_UP_MS = 3400;
 /** A safety net for a phone left recording, not a limit on conversation. */
 const MAX_RECORDING_SEC = 30 * 60;
 
+const keyOf = (s: Speaker) => (isNew(s) ? `new:${nameKey(s.name)}` : s.id);
+
 /**
  * Ask → How → Who → Ready → Listen → Understand → Verify → Save, or
- * Ask → How → Who → Share → Sent, when they'll answer on their own phone.
+ * Ask → How → Who → Share → Sent, when they'll answer on their own phone, or
+ * Ask → How → A few people → Send to each → the question's page.
  * One screen at a time, with the question carried through every step.
  */
 export function CaptureFlow() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { settings, saveCapture, captures, people, getPerson, updateProfile, addOutgoing } = useStore();
+  const { settings, saveCapture, captures, people, getPerson, updateProfile, addOutgoing, outgoing } = useStore();
 
   const recorder = useRecorder();
   const answer = useSpeechRecognition({ continuous: true });
@@ -90,6 +99,14 @@ export function CaptureFlow() {
   const sendingAgain = params.get("send") === "1" && Boolean(initialQuestion);
   const [step, setStep] = useState<Step>(sendingAgain ? "send-who" : initialQuestion ? "how" : "ask");
   const [group, setGroup] = useState(() => params.get("group") || newId());
+  // Asking someone else from a question's page: their answer joins the others, and Done goes back there.
+  const [adding] = useState(() => {
+    const key = params.get("group");
+    return key ? findQuestion(key, captures, outgoing, people) : undefined;
+  });
+  const [few, setFew] = useState<Speaker[]>([]);
+  const [deliveries, setDeliveries] = useState<Record<string, Delivery>>({});
+  const preparedFor = useRef<Record<string, Prepared>>({});
   const [prepared, setPrepared] = useState<Prepared | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareProblem, setShareProblem] = useState<string | null>(null);
@@ -142,7 +159,11 @@ export function CaptureFlow() {
     (next: Step, direction: Direction = "forward") => withTransition(() => setStep(next), direction),
     [],
   );
-  const leave = useCallback(() => navigate("/", { viewTransition: true }), [navigate]);
+  const hub = `/library/questions/${encodeURIComponent(group)}`;
+  const leave = useCallback(
+    () => (adding ? navigate(hub, { replace: true, viewTransition: true }) : navigate("/", { viewTransition: true })),
+    [navigate, adding, hub],
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -403,6 +424,7 @@ export function CaptureFlow() {
       origin: manual ? "manual" : "recording",
       ...(edited && !manual ? { edited: true } : {}),
       ...(preview && !manual ? { preview: true } : {}),
+      group,
     };
     setIntroduced(value.speakers.length === 1 && isNew(value.speakers[0]));
     setSaved(saveCapture(capture, value.speakers));
@@ -507,6 +529,53 @@ export function CaptureFlow() {
     go("send-who", "back");
   };
 
+  // ── Sending it to a few people, one at a time ──────────────
+
+  const nameOf = (s: Speaker) => speakerLabel([s], people);
+
+  const deliver = async (speaker: Speaker, how: "share" | "copy") => {
+    const key = keyOf(speaker);
+    const name = nameOf(speaker);
+    const forget = () =>
+      setDeliveries((d) => {
+        const next = { ...d };
+        delete next[key];
+        return next;
+      });
+    setDeliveries((d) => ({ ...d, [key]: { state: "sending" } }));
+    setShareProblem(null);
+    try {
+      // Their own question on the relay, made once: "Levis asked you for 3", just for them.
+      let ready = preparedFor.current[key];
+      if (!ready) {
+        const relay = relayFor(await detectRelay());
+        const created = await relay.create({ question, askerName: signedAs, forName: name, wantsAudio: settings.keepRecordings });
+        ready = { ...created, via: relay.kind, forKey: key };
+        preparedFor.current[key] = ready;
+      }
+      const invite = { asker: signedAs, question, link: answerLink(ready.id) };
+      const result = how === "share" ? await shareInvite(invite) : await copyInvite(invite);
+      if (result === "cancelled") return forget();
+      addOutgoing({
+        id: ready.id,
+        ownerKey: ready.ownerKey,
+        via: ready.via,
+        question,
+        speakers: [speaker],
+        person: name,
+        group,
+        sentAt: new Date().toISOString(),
+        state: "sent",
+        answers: [],
+        wantsAudio: settings.keepRecordings,
+      });
+      setDeliveries((d) => ({ ...d, [key]: result === "failed" ? { state: "failed", link: invite.link } : { state: result } }));
+    } catch {
+      forget();
+      setShareProblem(`Couldn’t prepare ${name}’s question. Check your connection and try again.`);
+    }
+  };
+
   // ── Render ─────────────────────────────────────────────────
 
   const followUpLabel = asking?.kind === "more" ? `Asking for ${asking.want === 1 ? "one more" : "two more"}` : "A quick follow-up";
@@ -530,6 +599,11 @@ export function CaptureFlow() {
       {step === "how" && (
         <HowStep
           question={question}
+          adding={
+            adding && adding.people > 0
+              ? `${namesOf(adding.asked.map((a) => a.name))} ${adding.people === 1 ? "was" : "were"} asked this already. Whoever you ask now joins them.`
+              : undefined
+          }
           onInPerson={() => go("who")}
           onSend={() => go("send-who")}
           onBack={() => {
@@ -545,12 +619,52 @@ export function CaptureFlow() {
           question={question}
           speakers={speakers}
           onChange={setSpeakers}
+          onFew={() => {
+            setFew(speakers.filter((s) => !isNew(s) || s.name.trim()));
+            go("send-few", "none");
+          }}
           onContinue={() => go("share")}
           onSkip={() => {
             setSpeakers([]);
             go("share");
           }}
           onBack={() => (sendingAgain ? leave() : go("how", "back"))}
+        />
+      )}
+
+      {step === "send-few" && (
+        <FewPeopleStep
+          question={question}
+          chosen={few}
+          onChange={setFew}
+          alreadyAsked={
+            adding?.asked.flatMap((a) => (a.personIds.length === 1 && a.name ? [{ id: a.personIds[0], name: a.name }] : [])) ?? []
+          }
+          onOne={() => go("send-who", "none")}
+          onSend={() => go("send-each")}
+          onBack={() => (sendingAgain ? leave() : go("how", "back"))}
+        />
+      )}
+
+      {step === "send-each" && (
+        <SendEachStep
+          question={question}
+          recipients={few.map((s) => ({
+            key: keyOf(s),
+            name: nameOf(s),
+            photo: isNew(s) ? undefined : getPerson(s.id)?.photo,
+          }))}
+          deliveries={deliveries}
+          askerName={signedAs}
+          onAskerName={(firstName) => updateProfile({ firstName })}
+          keepsAudio={settings.keepRecordings}
+          problem={shareProblem}
+          onSend={(key, how) => {
+            const speaker = few.find((s) => keyOf(s) === key);
+            if (speaker) void deliver(speaker, how);
+          }}
+          onDone={() => navigate(hub, { replace: true, viewTransition: true })}
+          onBack={() => go("send-few", "back")}
         />
       )}
 

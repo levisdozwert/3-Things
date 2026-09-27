@@ -1,4 +1,5 @@
 import { fromLine } from "./format";
+import type { SharedPoint } from "./share";
 import type { Capture } from "./types";
 
 /**
@@ -70,7 +71,55 @@ function layout(ctx: CanvasRenderingContext2D, capture: Capture, scale: number, 
   return y;
 }
 
-export async function renderShareCard(capture: Capture): Promise<Blob> {
+/** Perspectives: the question, whose they are, then one point from each person with their name under it. */
+function layoutPerspectives(
+  ctx: CanvasRenderingContext2D,
+  card: { question: string; names: string; points: SharedPoint[] },
+  scale: number,
+  draw: boolean,
+): number {
+  let y = PAD;
+  const s = (n: number) => Math.round(n * scale);
+  const text = (t: string, x: number, at: number) => draw && ctx.fillText(t, x, at);
+
+  ctx.font = `560 ${s(32)}px ${SANS}`;
+  ctx.fillStyle = COLORS.ink3;
+  for (const l of lines(ctx, `Perspectives from ${card.names}`, W - 2 * PAD)) {
+    y += s(40);
+    text(l, PAD, y);
+  }
+  y += s(12);
+
+  ctx.font = `400 ${s(60)}px ${SERIF}`;
+  ctx.fillStyle = COLORS.ink;
+  for (const l of lines(ctx, card.question, W - 2 * PAD)) {
+    y += s(72);
+    text(l, PAD, y);
+  }
+  y += s(48);
+  if (draw) {
+    ctx.fillStyle = COLORS.line;
+    ctx.fillRect(PAD, y, W - 2 * PAD, 2);
+  }
+  y += s(12);
+
+  card.points.forEach((point, i) => {
+    y += s(i === 0 ? 64 : 84);
+    ctx.font = `460 ${s(44)}px ${SERIF}`;
+    ctx.fillStyle = COLORS.ink;
+    lines(ctx, point.headline, W - 2 * PAD).forEach((l, j) => {
+      if (j > 0) y += s(54);
+      text(l, PAD, y);
+    });
+    y += s(46);
+    ctx.font = `600 ${s(30)}px ${SANS}`;
+    ctx.fillStyle = COLORS.ember;
+    text(point.name, PAD, y);
+  });
+  return y;
+}
+
+async function paint(fit: (ctx: CanvasRenderingContext2D, scale: number, draw: boolean) => number): Promise<Blob> {
   await Promise.all([document.fonts.load(`400 64px ${SERIF}`), document.fonts.load(`560 32px ${SANS}`)]).catch(() => []);
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -83,8 +132,8 @@ export async function renderShareCard(capture: Capture): Promise<Blob> {
 
   // Leave room at the bottom for the mark. Short answers get larger type; long ones a little smaller.
   const room = H - PAD - 140;
-  const scale = [1.3, 1.2, 1.1, 1, 0.9, 0.8, 0.7, 0.62].find((k) => layout(ctx, capture, k, false) <= room) ?? 0.55;
-  layout(ctx, capture, scale, true);
+  const scale = [1.3, 1.2, 1.1, 1, 0.9, 0.8, 0.7, 0.62].find((k) => fit(ctx, k, false) <= room) ?? 0.55;
+  fit(ctx, scale, true);
 
   // The mark: three strokes, then the name, quietly.
   const base = H - PAD;
@@ -101,4 +150,12 @@ export async function renderShareCard(capture: Capture): Promise<Blob> {
   return new Promise((resolve, reject) =>
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Couldn’t make the picture"))), "image/png"),
   );
+}
+
+export function renderShareCard(capture: Capture): Promise<Blob> {
+  return paint((ctx, scale, draw) => layout(ctx, capture, scale, draw));
+}
+
+export function renderPerspectivesCard(card: { question: string; names: string; points: SharedPoint[] }): Promise<Blob> {
+  return paint((ctx, scale, draw) => layoutPerspectives(ctx, card, scale, draw));
 }

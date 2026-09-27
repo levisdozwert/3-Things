@@ -139,3 +139,11 @@
   font-weight: 540;
   color: var(--ember-ink);
 }
+
+.questionLink {
+  display: block;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}

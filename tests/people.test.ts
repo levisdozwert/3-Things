@@ -24,7 +24,7 @@ const sarah = people.find((p) => p.name === "Sarah")!;
 describe("people as records", () => {
   it("names someone once and recognizes them later", () => {
     const jasons = library.filter((c) => c.personIds?.includes(jason.id));
-    expect(jasons.length).toBe(4);
+    expect(jasons.length).toBe(6);
     expect(jason.note).toBe("Former colleague from my first startup");
   });
 
@@ -58,15 +58,15 @@ describe("several people in one conversation", () => {
     expect(withGroup.find((c) => c.id === "group")?.person).toBe("Jason + Sarah");
     const everyone = listPeople(withGroup, people);
     const j = everyone.find((p) => p.id === jason.id)!;
-    expect(j.conversations.length).toBe(5);
+    expect(j.conversations.length).toBe(7);
     expect(j.together).toBe(1);
     // Things from a group conversation aren't attributed to any one person.
-    expect(j.things).toBe(12);
+    expect(j.things).toBe(18);
   });
 
   it("keeps the conversation when one of them is deleted, without their name", () => {
     const { captures, removed } = removePerson(withGroup, people, jason.id);
-    expect(removed.length).toBe(4);
+    expect(removed.length).toBe(6);
     expect(captures.find((c) => c.id === "group")?.person).toBe("Sarah");
     expect(captures.some((c) => c.personIds?.includes(jason.id))).toBe(false);
   });
@@ -88,7 +88,7 @@ describe("duplicates", () => {
     const { captures, people: after } = merge(library, people, patel.id, jason.id);
     expect(after.some((p) => p.id === patel.id)).toBe(false);
     const theirs = captures.filter((c) => c.personIds?.includes(jason.id));
-    expect(theirs.length).toBe(5);
+    expect(theirs.length).toBe(7);
     expect(theirs.every((c) => c.person === "Jason")).toBe(true);
   });
 
@@ -110,7 +110,7 @@ describe("asking someone again", () => {
 
   it("knows a different place makes a different question", () => {
     expect(questionSimilarity("What are three places I shouldn't miss in Chicago?", "What are three places I shouldn't miss in Boston?")).toBe(0);
-    expect(askedBefore(library, sarah.id, "What are three places I shouldn't miss in Chicago?")).toBeUndefined();
+    expect(askedBefore(library, sarah.id, "What are three places I shouldn't miss in Denver?")).toBeUndefined();
     expect(askedBefore(library, sarah.id, "What places should I not miss in Boston?")?.place).toBe("Boston");
   });
 });
@@ -126,8 +126,8 @@ describe("finding someone", () => {
   it("makes a person a way into everything they've taught you", () => {
     const results = searchLibrary(library, "Jason", people);
     expect(results.people[0].person.name).toBe("Jason");
-    expect(results.questions.filter((c) => c.personIds?.includes(jason.id)).length).toBe(4);
-    expect(results.things.filter((r) => r.capture.personIds?.includes(jason.id)).length).toBe(12);
+    expect(results.questions.filter((c) => c.personIds?.includes(jason.id)).length).toBe(6);
+    expect(results.things.filter((r) => r.capture.personIds?.includes(jason.id)).length).toBe(18);
     // His own things come first.
     expect(results.things[0].capture.person).toMatch(/^Jason/);
   });

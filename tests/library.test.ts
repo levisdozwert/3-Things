@@ -21,8 +21,8 @@ const library = seedCaptures(new Date("2026-09-27T20:00:00"));
 describe("people", () => {
   it("brings one person's conversations together", () => {
     const jason = findPerson(library, "person-jason")!;
-    expect(jason.conversations.length).toBe(4);
-    expect(jason.things).toBe(12);
+    expect(jason.conversations.length).toBe(6);
+    expect(jason.things).toBe(18);
     expect(jason.topics[0]).toBe("Startup");
     // Newest first.
     expect(jason.conversations[0].question).toBe("What are three things first-time founders get wrong?");

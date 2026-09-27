@@ -5,13 +5,15 @@ import styles from "./SendSteps.module.css";
 
 interface HowStepProps {
   question: string;
+  /** Asking someone else a question others have answered: who was asked already. */
+  adding?: string;
   onInPerson: () => void;
   onSend: () => void;
   onBack: () => void;
 }
 
 /** The question, settled. Then one simple choice: together now, or on their own phone later. */
-export function HowStep({ question, onInPerson, onSend, onBack }: HowStepProps) {
+export function HowStep({ question, adding, onInPerson, onSend, onBack }: HowStepProps) {
   return (
     <>
       <div className={flow.topbar}>
@@ -21,6 +23,7 @@ export function HowStep({ question, onInPerson, onSend, onBack }: HowStepProps) 
       <div className={`${flow.content} ${styles.content}`}>
         <p className={`${flow.label} ${flow.enter}`}>Your question</p>
         <h1 className={`${flow.question} ${flow.questionXL}`}>{question}</h1>
+        {adding && <p className={styles.adding}>{adding}</p>}
 
         <section className={`${styles.how} ${flow.enterLate}`} aria-labelledby="how-heading">
           <h2 id="how-heading" className={`serif ${styles.heading}`}>

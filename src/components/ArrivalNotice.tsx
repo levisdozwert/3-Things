@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useRemoteSync, type Arrival } from "../lib/remote/useRemoteSync";
+import { groupOf } from "../lib/questions";
+import { describeArrivals, type Notice } from "../lib/remote/arrivals";
+import { useRemoteSync } from "../lib/remote/useRemoteSync";
 import { useStore } from "../lib/store";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
@@ -13,17 +15,18 @@ const SHOW_MS = 9000;
  * back. Quiet, brief, and only if you want it. No streaks, no nudges.
  */
 export function ArrivalNotice() {
-  const { settings } = useStore();
+  const { settings, captures } = useStore();
   const location = useLocation();
-  const [shown, setShown] = useState<Arrival | null>(null);
+  const [shown, setShown] = useState<Notice | null>(null);
 
   useRemoteSync((arrivals) => {
     if (!settings.notifyAnswers) return;
-    const latest = arrivals[arrivals.length - 1];
-    setShown(latest);
+    const fresh = new Set(arrivals.map((a) => a.captureId));
+    const notice = describeArrivals(arrivals, (group) => captures.filter((c) => groupOf(c) === group && !fresh.has(c.id)).length);
+    setShown(notice);
     // A device notification only if the user turned it on, and only when the app isn't in view.
     if (typeof Notification !== "undefined" && Notification.permission === "granted" && document.visibilityState !== "visible") {
-      new Notification(`${latest.name} answered your question`, { body: latest.question, tag: latest.captureId });
+      new Notification(notice.title, { body: notice.line, tag: notice.captureId });
     }
   });
 
@@ -33,16 +36,19 @@ export function ArrivalNotice() {
     return () => window.clearTimeout(timeout);
   }, [shown]);
 
-  // Never over someone's answer, or the conversation it points to.
-  if (!shown || location.pathname.startsWith("/a/") || location.pathname === `/library/${shown.captureId}`) return null;
+  // Never over someone's answer, or the page it points to.
+  const here = location.pathname;
+  if (!shown || here.startsWith("/a/") || here === `/library/${shown.captureId}` || here === shown.to || here.startsWith(`${shown.to}/`)) {
+    return null;
+  }
 
   return (
     <div className={styles.notice} role="status">
-      <Link to={`/library/${shown.captureId}`} viewTransition className={styles.body} onClick={() => setShown(null)}>
+      <Link to={shown.to} viewTransition className={styles.body} onClick={() => setShown(null)}>
         <Avatar name={shown.name} size="sm" />
         <span className={styles.text}>
-          <span className={styles.title}>{shown.name} answered your question</span>
-          <span className={styles.question}>{shown.question}</span>
+          <span className={styles.title}>{shown.title}</span>
+          <span className={styles.question}>{shown.line}</span>
         </span>
         <span className={styles.see}>See</span>
       </Link>

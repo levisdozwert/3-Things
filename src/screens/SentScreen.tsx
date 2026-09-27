@@ -22,7 +22,8 @@ export function SentScreen() {
   // The same question sent to several people stays together; each answer stays its own.
   const groups = new Map<string, Outgoing[]>();
   for (const o of outgoing) groups.set(o.group, [...(groups.get(o.group) ?? []), o]);
-  const waiting = outgoing.filter(isWaiting).length;
+  // By question: one question sent to four people is one question waiting.
+  const waiting = new Set(outgoing.filter(isWaiting).map((o) => o.group)).size;
 
   return (
     <main className={page.page}>
@@ -51,7 +52,18 @@ export function SentScreen() {
       ) : (
         [...groups.values()].map((group) => (
           <section key={group[0].group} className={styles.group}>
-            <p className={`serif ${styles.question}`}>{group[0].question}</p>
+            {group.length > 1 ? (
+              // Asked of several people: the question has its own page, with everyone's answers.
+              <Link
+                to={`/library/questions/${encodeURIComponent(group[0].group)}`}
+                viewTransition
+                className={`serif ${styles.question} ${styles.questionLink}`}
+              >
+                {group[0].question}
+              </Link>
+            ) : (
+              <p className={`serif ${styles.question}`}>{group[0].question}</p>
+            )}
             <ul className={styles.people}>
               {[...group].reverse().map((o) => {
                 const name = sentTo(o, people);
