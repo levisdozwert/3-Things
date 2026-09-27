@@ -1,11 +1,11 @@
 .content {
-  padding-top: 7vh;
-  gap: 12px;
+  padding-top: 4vh;
+  gap: 10px;
 }
 
 .who {
-  margin-top: 40px;
-  padding-top: 24px;
+  margin-top: 28px;
+  padding-top: 22px;
   border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -55,11 +55,109 @@
   color: var(--ink);
 }
 
+/* The person you chose: recognized, not profiled. */
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.personText {
+  flex: 1;
+  min-width: 0;
+}
+
+.personName {
+  font-size: 1.5rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 36;
+}
+
+.personNote {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.change {
+  min-height: 40px;
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+.memory {
+  margin-top: 8px;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.memory strong {
+  font-weight: 580;
+  color: var(--ink);
+}
+
+.similar {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--paper-sunken);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.similarQuestion {
+  margin-top: 6px;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 24;
+}
+
+.previous {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fade var(--t-base) var(--ease-out) both;
+}
+
+.previous li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  color: var(--ink);
+}
+
+.previous li > span:first-child {
+  color: var(--ember);
+}
+
+.viewPrevious {
+  margin-top: 6px;
+  min-height: 36px;
+  font-weight: 560;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+.bothKept {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
 @media (max-height: 700px) {
   .content {
-    padding-top: 2vh;
+    padding-top: 1vh;
   }
   .who {
-    margin-top: 24px;
+    margin-top: 18px;
   }
 }

@@ -183,3 +183,30 @@
     margin-top: 20px;
   }
 }
+
+/* Asking someone you know. */
+.asking {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.askingWho {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.askingWho strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.askedAbout {
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}

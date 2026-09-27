@@ -1,11 +1,22 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Avatar } from "../components/Avatar";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
 import { ConversationRow, PersonRow, ThingRow, TopicRow } from "../components/library/Rows";
 import rows from "../components/library/Library.module.css";
-import { daysAgo } from "../lib/format";
-import { listPeople, listPlaces, listTopics, mentionLine, searchLibrary, type SearchResults } from "../lib/library";
+import { MergeSheet } from "../components/people/MergeSheet";
+import { count, daysAgo } from "../lib/format";
+import {
+  listPeople,
+  listPlaces,
+  listTopics,
+  mentionLine,
+  searchLibrary,
+  type Person,
+  type SearchResults,
+} from "../lib/library";
+import { likelyDuplicates } from "../lib/people";
 import { starterQuestions } from "../lib/samples";
 import { useStore } from "../lib/store";
 import type { Capture } from "../lib/types";
@@ -105,7 +116,8 @@ function Recent({ captures }: { captures: Capture[] }) {
  * remember it. By when, by who, and by what it was about.
  */
 export function LibraryScreen() {
-  const { captures } = useStore();
+  const { captures, people: records, separate, mergePeople, keepSeparate } = useStore();
+  const [merging, setMerging] = useState<[Person, Person] | null>(null);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [focused, setFocused] = useState(false);
@@ -123,10 +135,12 @@ export function LibraryScreen() {
     setParams(out, { replace: true });
   };
 
-  const people = useMemo(() => listPeople(captures), [captures]);
+  const people = useMemo(() => listPeople(captures, records), [captures, records]);
+  // Only when it's very likely one person entered twice. Never a cleanup tool.
+  const duplicate = useMemo(() => likelyDuplicates(people, separate)[0], [people, separate]);
   const topics = useMemo(() => listTopics(captures), [captures]);
   const places = useMemo(() => listPlaces(captures), [captures]);
-  const results = useMemo(() => searchLibrary(captures, query), [captures, query]);
+  const results = useMemo(() => searchLibrary(captures, query, records), [captures, query, records]);
 
   const things = captures.reduce((n, c) => n + c.things.length, 0);
   const kept = captures.filter((c) => c.keptClose);
@@ -252,7 +266,7 @@ export function LibraryScreen() {
                 onClick={() => update({ kept: !keptOnly })}
               >
                 <Icon name={keptOnly ? "bookmarked" : "bookmark"} size={16} strokeWidth={1.7} />
-                Kept close
+                <span className={styles.keptLabel}>Kept close</span>
               </button>
             )}
           </div>
@@ -276,6 +290,30 @@ export function LibraryScreen() {
         )
       ) : view === "people" ? (
         <>
+          {duplicate && (
+            <div className={styles.duplicate}>
+              <p className={styles.duplicateTitle}>Are these the same person?</p>
+              <div className={styles.duplicatePeople}>
+                {duplicate.map((p) => (
+                  <span key={p.id} className={styles.duplicatePerson}>
+                    <Avatar name={p.name} photo={p.photo} size="sm" />
+                    <span>
+                      <strong>{p.name}</strong>
+                      <span>{count(p.conversations.length, "conversation")}</span>
+                    </span>
+                  </span>
+                ))}
+              </div>
+              <div className={styles.duplicateActions}>
+                <Button variant="quiet" size="sm" onClick={() => setMerging(duplicate)}>
+                  Merge
+                </Button>
+                <button type="button" className={styles.more} onClick={() => keepSeparate(duplicate[0].id, duplicate[1].id)}>
+                  Keep separate
+                </button>
+              </div>
+            </div>
+          )}
           <ul className={`${rows.list} ${styles.firstList}`}>
             {people.map((p) => (
               <PersonRow key={p.key} person={p} />
@@ -307,6 +345,23 @@ export function LibraryScreen() {
         </>
       ) : (
         <Recent captures={keptOnly ? kept : captures} />
+      )}
+
+      {merging && (
+        <MergeSheet
+          open
+          first={merging[0]}
+          second={merging[1]}
+          onClose={() => setMerging(null)}
+          onKeepSeparate={() => {
+            keepSeparate(merging[0].id, merging[1].id);
+            setMerging(null);
+          }}
+          onMerge={(fromId, intoId) => {
+            mergePeople(fromId, intoId);
+            setMerging(null);
+          }}
+        />
       )}
     </main>
   );

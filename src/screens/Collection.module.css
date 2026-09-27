@@ -10,6 +10,7 @@
   height: 60px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin: 0 -10px;
 }
 
@@ -80,4 +81,29 @@
 .missing a {
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+/* The user's own note about someone: quiet, personal, theirs. */
+.note {
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.addNote {
+  min-height: 32px;
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+.aside {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
 }

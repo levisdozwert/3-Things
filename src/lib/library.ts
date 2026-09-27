@@ -1,4 +1,4 @@
-import type { Capture, Thing } from "./types";
+import type { Capture, PersonRecord, Thing } from "./types";
 
 /**
  * The Library's understanding of what the user has kept:
@@ -17,12 +17,20 @@ export function topicKey(topic: string): string {
 }
 
 export interface Person {
+  /** The person's id, which is also how their page is addressed. */
   key: string;
-  /** As the user last wrote it. */
+  id: string;
+  /** What the user calls them. */
   name: string;
-  /** Newest first. */
+  /** The user's private note: "Former colleague". */
+  note?: string;
+  photo?: string;
+  /** Newest first, including any they answered together with others. */
   conversations: Capture[];
+  /** Things they told you themselves. Things from a conversation with several people belong to the conversation. */
   things: number;
+  /** Conversations they answered together with other people. */
+  together: number;
   /** Most common first. */
   topics: string[];
   places: string[];
@@ -52,26 +60,54 @@ function byFrequency(values: string[]): string[] {
   return [...counts.values()].sort((a, b) => b.n - a.n || a.first - b.first).map((e) => e.value);
 }
 
-/** The people the user has learned from. Unnamed conversations aren't anyone yet. */
-export function listPeople(captures: Capture[]): Person[] {
-  const groups = new Map<string, Capture[]>();
-  for (const capture of [...captures].sort(newestFirst)) {
-    const key = personKey(capture.person);
-    if (!key) continue;
-    groups.set(key, [...(groups.get(key) ?? []), capture]);
-  }
-  return [...groups.entries()].map(([key, conversations]) => ({
-    key,
-    name: conversations[0].person.trim(),
-    conversations,
-    things: conversations.reduce((n, c) => n + c.things.length, 0),
-    topics: byFrequency(conversations.map((c) => c.topic).filter(Boolean)),
-    places: byFrequency(conversations.flatMap((c) => (c.place ? [c.place] : []))),
-  }));
+/** A stable id for a name from before people had records, or from a sample. */
+export function personIdFor(name: string): string {
+  const slug = personKey(name)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `person-${slug || "someone"}`;
 }
 
-export function findPerson(captures: Capture[], key: string): Person | undefined {
-  return listPeople(captures).find((p) => p.key === key);
+/** Who a conversation is from, by id. */
+export function speakersOf(capture: Capture): string[] {
+  if (capture.personIds) return capture.personIds;
+  const name = capture.person.trim();
+  return name ? [personIdFor(name)] : [];
+}
+
+/**
+ * The people the user has learned from, most recent first. Unnamed
+ * conversations aren't anyone yet. `records` supplies names, notes and photos.
+ */
+export function listPeople(captures: Capture[], records: PersonRecord[] = []): Person[] {
+  const known = new Map(records.map((r) => [r.id, r]));
+  const groups = new Map<string, Capture[]>();
+  for (const capture of [...captures].sort(newestFirst)) {
+    for (const id of speakersOf(capture)) groups.set(id, [...(groups.get(id) ?? []), capture]);
+  }
+  return [...groups.entries()].map(([id, conversations]) => {
+    const record = known.get(id);
+    const solo = conversations.filter((c) => speakersOf(c).length === 1);
+    const at = speakersOf(conversations[0]).indexOf(id);
+    return {
+      key: id,
+      id,
+      name: record?.name ?? conversations[0].person.split(" + ")[at]?.trim() ?? conversations[0].person.trim(),
+      ...(record?.note ? { note: record.note } : {}),
+      ...(record?.photo ? { photo: record.photo } : {}),
+      conversations,
+      things: solo.reduce((n, c) => n + c.things.length, 0),
+      together: conversations.length - solo.length,
+      topics: byFrequency(conversations.map((c) => c.topic).filter(Boolean)),
+      places: byFrequency(conversations.flatMap((c) => (c.place ? [c.place] : []))),
+    };
+  });
+}
+
+export function findPerson(captures: Capture[], key: string, records: PersonRecord[] = []): Person | undefined {
+  return listPeople(captures, records).find((p) => p.key === key);
 }
 
 /** Topics emerge from what was asked. Most-visited first. */
@@ -87,7 +123,7 @@ export function listTopics(captures: Capture[]): Topic[] {
       key,
       name: conversations[0].topic.trim(),
       conversations,
-      people: byFrequency(conversations.flatMap((c) => (c.person.trim() ? [c.person.trim()] : []))),
+      people: byFrequency(conversations.flatMap((c) => c.person.split(" + ").map((n) => n.trim()).filter(Boolean))),
     }))
     .sort((a, b) => b.conversations.length - a.conversations.length || a.name.localeCompare(b.name));
 }
@@ -275,14 +311,23 @@ function describe(words: string[], captures: Capture[]): string {
   return words.map((w) => asWritten(w, captures)).join(" ");
 }
 
-function search(captures: Capture[], terms: string[], typed: string[]): Omit<SearchResults, "broadened"> {
+function search(
+  captures: Capture[],
+  terms: string[],
+  typed: string[],
+  records: PersonRecord[],
+): Omit<SearchResults, "broadened"> {
   const subject = describe(typed, captures);
   const empty = { people: [], questions: [], things: [], terms, subject };
   if (terms.length === 0) return empty;
 
   const sorted = [...captures].sort(newestFirst);
+  const everyone = listPeople(captures, records);
+  // A person is a way into everything they've taught you: search "Jason" and
+  // see what you asked him and what he said.
+  const named = new Set(everyone.filter((p) => matchesAll(p.name, terms)).map((p) => p.id));
   const aboutIt = new Set(sorted.filter((c) => found(conversationText(c), c.person, terms)).map((c) => c.id));
-  const questions = sorted.filter((c) => aboutIt.has(c.id));
+  const questions = sorted.filter((c) => aboutIt.has(c.id) || speakersOf(c).some((id) => named.has(id)));
 
   // A thing is found by its own words, or because the whole conversation was about it.
   const direct: ThingResult[] = [];
@@ -295,8 +340,15 @@ function search(captures: Capture[], terms: string[], typed: string[]): Omit<Sea
     });
   }
 
+  const theirs: ThingResult[] = [];
+  for (const capture of sorted) {
+    const ids = speakersOf(capture);
+    if (ids.length !== 1 || !named.has(ids[0])) continue;
+    capture.things.forEach((thing, index) => theirs.push({ capture, thing, index, direct: false }));
+  }
+
   const people: PersonResult[] = [];
-  for (const person of listPeople(captures)) {
+  for (const person of everyone) {
     const own = typed.filter((w) => !matchesAll(person.name, [stem(fold(w))]));
     const base = { person, subject: describe(own, captures) };
     if (matchesAll(person.name, terms)) {
@@ -304,7 +356,7 @@ function search(captures: Capture[], terms: string[], typed: string[]): Omit<Sea
       continue;
     }
     const about = person.conversations.filter((c) => aboutIt.has(c.id));
-    const passing = direct.filter((r) => personKey(r.capture.person) === person.key && !aboutIt.has(r.capture.id));
+    const passing = direct.filter((r) => speakersOf(r.capture).includes(person.id) && !aboutIt.has(r.capture.id));
     const passingIn = [...new Set(passing.map((r) => r.capture))];
     if (about.length + passingIn.length === 0) continue;
     people.push({
@@ -319,17 +371,19 @@ function search(captures: Capture[], terms: string[], typed: string[]): Omit<Sea
   const rank = (r: PersonResult) => (r.by === "name" ? 0 : r.inPassing ? 2 : 1);
   people.sort((a, b) => rank(a) - rank(b) || b.things - a.things);
 
-  return { people, questions, things: [...direct, ...context], terms, subject };
+  const seen = new Set(theirs.map((r) => r.thing.id));
+  const others = [...direct, ...context].filter((r) => !seen.has(r.thing.id));
+  return { people, questions, things: [...theirs, ...others], terms, subject };
 }
 
 /**
  * Searching your own memory: who said it, what you asked, what they said.
  * It only ever finds what people actually told you, and every result keeps its source.
  */
-export function searchLibrary(captures: Capture[], query: string): SearchResults {
+export function searchLibrary(captures: Capture[], query: string, records: PersonRecord[] = []): SearchResults {
   const typed = meaningfulWords(query);
   const terms = queryTerms(query);
-  const results = search(captures, terms, typed);
+  const results = search(captures, terms, typed, records);
   if (terms.length < 2 || results.people.length + results.questions.length + results.things.length > 0) return results;
 
   // Nothing matched every word. If the search names someone, somewhere or a
@@ -337,7 +391,7 @@ export function searchLibrary(captures: Capture[], query: string): SearchResults
   const known = words(captures.map((c) => `${c.person} ${c.place ?? ""} ${c.topic}`).join(" "));
   const named = typed.filter((w) => known.some((k) => k.startsWith(stem(fold(w)))));
   if (named.length === 0 || named.length === typed.length) return results;
-  const broader = search(captures, [...new Set(named.map((w) => stem(fold(w))))], named);
+  const broader = search(captures, [...new Set(named.map((w) => stem(fold(w))))], named, records);
   if (broader.people.length + broader.questions.length + broader.things.length === 0) return results;
   return { ...broader, broadened: broader.subject };
 }

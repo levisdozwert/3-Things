@@ -12,7 +12,7 @@ import {
   stem,
 } from "../src/lib/library";
 import { seedCaptures } from "../src/lib/samples";
-import { refreshSamples } from "../src/lib/store";
+import { defaultSettings, refreshSamples } from "../src/lib/store";
 import { yearOfConversations } from "../src/lib/yearOfConversations";
 import type { Capture } from "../src/lib/types";
 
@@ -20,7 +20,7 @@ const library = seedCaptures(new Date("2026-09-27T20:00:00"));
 
 describe("people", () => {
   it("brings one person's conversations together", () => {
-    const jason = findPerson(library, "jason")!;
+    const jason = findPerson(library, "person-jason")!;
     expect(jason.conversations.length).toBe(4);
     expect(jason.things).toBe(12);
     expect(jason.topics[0]).toBe("Startup");
@@ -29,12 +29,13 @@ describe("people", () => {
   });
 
   it("treats a name the same however it's capitalized", () => {
-    const extra: Capture = { ...library[0], id: "x", person: "  jason " };
-    expect(listPeople([...library, extra]).filter((p) => p.key === "jason")).toHaveLength(1);
+    // Saved before people had records: matched to the same Jason by name.
+    const extra: Capture = { ...library[0], id: "x", person: "  jason ", personIds: undefined };
+    expect(listPeople([...library, extra]).filter((p) => p.key === "person-jason")).toHaveLength(1);
   });
 
   it("leaves unnamed conversations out of People", () => {
-    const unnamed: Capture = { ...library[0], id: "y", person: "" };
+    const unnamed: Capture = { ...library[0], id: "y", person: "", personIds: [] };
     expect(listPeople([unnamed])).toEqual([]);
   });
 });
@@ -171,11 +172,11 @@ describe("a year of conversations", () => {
 });
 
 describe("refreshSamples", () => {
-  const settings = { name: "", consentReminder: true, keepRecordings: true, showSamples: true, fullLibrary: false };
+  const settings = defaultSettings;
 
   it("adds new sample conversations once, and never touches the user's own", () => {
     const mine: Capture = { ...library[0], id: "mine", origin: "recording", question: "My own question?" };
-    const older = { captures: [mine, library[0]], settings };
+    const older = { captures: [mine, library[0]], people: [], settings };
     const refreshed = refreshSamples(older);
     expect(refreshed.captures.find((c) => c.id === "mine")).toEqual(mine);
     expect(refreshed.captures.length).toBe(library.length + 1);
@@ -187,7 +188,7 @@ describe("refreshSamples", () => {
 
   it("keeps an edited sample exactly as the user left it", () => {
     const edited: Capture = { ...library[0], edited: true, topic: "Mine" };
-    const refreshed = refreshSamples({ captures: [edited], settings, seeded: library.map((c) => c.id) });
+    const refreshed = refreshSamples({ captures: [edited], people: [], settings, seeded: library.map((c) => c.id) });
     expect(refreshed.captures[0].topic).toBe("Mine");
   });
 });

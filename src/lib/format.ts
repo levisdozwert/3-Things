@@ -78,3 +78,15 @@ export function timer(totalSeconds: number): string {
   const ss = String(s % 60).padStart(2, "0");
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
+
+/** "Startup", "Startup and Career", "Startup, Career and Leadership" */
+export function listOf(items: string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/** "one question", "4 questions": small counts read better as words. */
+export function countWords(n: number, one: string, many = `${one}s`): string {
+  const words = ["no", "one", "two", "three"];
+  return `${n < words.length ? words[n] : n} ${n === 1 ? one : many}`;
+}

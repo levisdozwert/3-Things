@@ -16,7 +16,7 @@ Ask → Listen → Understand → 3 Things → Save
 | --- | --- | --- |
 | Ask | **Home** | One big *Ask for 3*. Type a question is the quiet alternative. Example questions sit underneath. |
 | | **Ask** | *What do you want to ask?* Nothing records until you choose. **Speak your question** is the main action; the screen shows only that it's listening, never your words as you say them. Afterwards the question appears once, with **Use this question** or **Edit**. **Type instead** gives a minimal, large-serif input with **Continue**. |
-| | **Who** | The question, settled. *Who are you asking?* **Add their name** (a first name is enough) or **Skip for now**. With a name, the result later reads *3 Things from Jason*. |
+| | **Who** | The question, settled. *Who are you asking?* Type a name and people you've asked before appear as you type (*Jason Patel · 5 conversations*), with **Create “Jason”** for someone new; or **Skip for now**. See *People you've learned from* below. |
 | | **Ready** | The question in quotes, *Ready when Jason is* (or *they are*), *Let them answer naturally…*, the one-line consent reminder, and the strongest button in the app: **Start listening**. Its three marks grow into the listening screen's three forms. |
 | Listen | **Listening** | Focus mode. *Listening to Jason*, the question, three vertical forms that respond to the voice, one line of copy, and Pause, Stop and a quiet `01:42` timer. No transcript. After six seconds untouched, the controls fade back. In silence, *Take your time.*, later *Still listening.*, and it never stops on its own. |
 | | **Got it.** | Stop gives a small haptic tap where the phone supports it. The forms settle back into the mark and the screen says *Got it.*, then moves on to *Finding the three things*. |
@@ -31,7 +31,7 @@ The recording never interrupts the conversation. If someone gives two things or 
 
 Problems get one plain sentence and one way forward: *We couldn't access your microphone. Check microphone access and try again.*, *We couldn't find a microphone.*, *The recording stopped.*, *We didn't catch that.*
 
-Plus the **Library** (below) and **You** (profile, listening settings, export, and a short explanation of how 3 Things listens). Navigation is three tabs: Home, Library, You.
+Plus the **Library** and **You** (both below). Navigation is three tabs: Home, Library, You.
 
 ## The Library
 
@@ -42,7 +42,7 @@ Over time the Library becomes a record of what people have taught you, organized
 | **Your 3 Things** | A quiet growth line (*You've learned 53 things from 10 people.*), then search, then an understated **Recent · People · Topics** switch. No extra tab, no streaks, no scores. |
 | **Recent** | The default. Grouped *Today*, *This week* and *Earlier*. Each row leads with the person (small initial avatar), then the question in serif, then a quiet line: topic · place · when. A **Kept close** chip filters to the conversations you bookmarked. |
 | **People** | Everyone you've asked, with how many things you've learned from them and what, and where, you talked about (*Travel · Life · Boston*). No profiles, followers or social features. Unnamed conversations are counted in a footnote, never guessed. |
-| **Person** | *15 things you've learned from Jason*, the topics and places that came up, then *What you've asked, over time*: each question with its three headlines. **Ask Jason something** starts a new question with the name already filled in. |
+| **Person** | A photo or initial, the name, your private note (*Former colleague from my first startup*), *15 things you've learned from Jason*, then *What you've asked, over time*: each question with its three headlines and its date. **Ask Jason something** starts a new question with Jason already chosen. **Edit** changes the name, note or photo, merges with someone else, or deletes them. |
 | **Topics** | Suggested when saved (Startup, Travel, Food, Life…), always changeable. Places sit underneath as a quiet line, not a tab. |
 | **Topic** | Every conversation about it, across people. With two or more: *Different people, different views. Each stays in their own words.* Jason's "Hire more slowly than you think you need to" and Maya's "Hire faster than feels comfortable" stay side by side, attributed and never merged into a consensus. |
 | **Search** | *Search people, questions or things.* Matches names, questions, things, their context, topics and places, with gentle word matching (*hiring* finds *hire*). Results are grouped **People**, **Questions**, **Things**, a few of each with **Show all** for the rest. People say how they came up: *Told you 6 things about Boston*, *Mentioned Boston in a travel conversation*. Things list what mentions the search first, then the rest of the conversations about it, and every thing shows who said it and what was asked. Opening one scrolls to it and highlights it briefly. |
@@ -55,9 +55,35 @@ The empty Library says *Your Library grows one conversation at a time.* and *Ask
 
 Places are metadata only: they come from what the speaker actually said (a place the transcript doesn't contain is dropped by the grounding check), or from what you type in.
 
-People are grouped by name (case and spacing ignored), so "Jason" in March and "jason" in May are the same person. The sample conversations are refreshed for existing users without touching anything they've edited, kept close or deleted.
+Searching a name, *Jason*, brings up Jason, every question you asked Jason, and every thing Jason said. The sample conversations are refreshed for existing users without touching anything they've edited, kept close, merged or deleted.
 
-To see the Library at scale, turn on **A year of conversations** in You. It adds about 75 sample conversations from 25 people (276 things in all) and takes them away again when turned off. Turn off **Sample conversations** to see the empty Library.
+To see the Library at scale, turn on **A year of conversations** in You. It adds about 75 sample conversations, for 279 things from 26 people in all, and takes them away again when turned off. Turn off **Sample conversations** to see the empty Library.
+
+## People you've learned from
+
+Knowing who said something matters, but nobody should have to build a profile for everyone they meet. **Name someone once, recognize them later.**
+
+- **A person is a name, maybe a note, maybe a photo.** "Jason", "Mom", "Barista at Cortaditos". The note is one line for your memory only (*Met at NJ Tech meetup*). No company, title, tags, birthday or contact details.
+- **Adding someone is part of asking.** In the Who step, typing *Ja* shows *Jason · 4 conversations · Former colleague* and *Jason Patel · 1 conversation*, then **Create “Ja”**. Someone new gets one question, *What should we call them?*, and the flow continues. After saving, *Priya is new to your Library* offers **Add a little context**. It's never required.
+- **Asking someone again.** Choosing Jason says *You've asked Jason 4 questions before, about Startup, Career and Leadership.* Starting from Jason's page or Home, the Ask screen shows the same context. If the new question is very like one you asked before, it says *You asked Jason something similar on Jul 31*, with **View previous** and **Ask again**. It never blocks you, and never merges the answers: both conversations are kept, each with its date, because people's answers change.
+- **Ask again** on Home: once you've asked a few people several things (not on a first visit), the three people you've learned from most recently sit under *Ask for 3*, one tap from a new question with them already chosen.
+- **Duplicates.** Only when it's very likely, the People view asks *Are these the same person?* (*Jason* and *Jason Patel*). **Merge** lets you pick the name to keep; nothing is deleted and each conversation keeps its date. **Keep separate** means it won't ask about that pair again. Creating another "Jason" on purpose counts as keeping them separate. You can also merge from a person's Edit sheet.
+- **Unnamed conversations** read *From this conversation* everywhere, with **Add a name** on the Saved screen and the conversation page. Naming it updates the source across the Library.
+- **Several people** in one conversation: **Several people answered** labels it *Jason + Sarah*. Their things belong to the conversation, not to either of them, and 3 Things never guesses who said what. It shows on both people's pages.
+- **Deleting someone** says exactly what happens: *This will remove Jason and the 4 conversations you had with them from your Library, including any recordings.* Conversations they shared with others stay, without their name.
+
+**Private by default.** Jason in your Library is your own reference to Jason, not an account: never public, never searchable by anyone else. Photos are only ever chosen or taken by you, never captured during a recording, and nothing recognizes faces. There's no address-book import; people exist because you had a conversation with them. The data model reserves a place (`PersonRecord.account`) for a future where Jason has their own account, but nothing links them, and only an explicit action ever could.
+
+## You
+
+A personal page, not a social profile: a photo or initials, your name (*Edit profile*: first name, optional last name, preferred name, photo; nothing else), *Your conversations. Your people. Your things worth remembering.* and a reflective *59 things from 10 people*.
+
+- **Recording & privacy:** microphone access in plain words (with **Allow** when the browser hasn't asked yet), the recording reminder, **Keep original audio** (*Keep the recording so you can listen back later*; off means recordings are deleted once the three things are saved), and **Delete all recordings**.
+- **Your Library:** Topics, **Export your 3 Things** (a JSON file of your profile, people and conversations, because what you capture belongs to you), and the sample-conversation switches.
+- **App:** Appearance (larger text, calmer motion), Notifications (3 Things doesn't send any), Help (*How 3 Things listens*), Privacy and Terms.
+- **Account:** **Delete your account** removes the profile and everything in the Library from this device, and says so plainly.
+
+Deleting is always available and never argued with: a single conversation (its page), its recording, a person, all recordings, or everything.
 
 ## How the three are chosen
 
@@ -96,7 +122,7 @@ These rules are covered by tests in [`tests/`](tests). They include a check that
 ```bash
 npm install
 npm run dev          # http://localhost:5173 (also exposed on your LAN for phone testing)
-npm test             # grounding, samples, library and formatting tests
+npm test             # grounding, samples, library, people and formatting tests
 npm run build        # typecheck + production build
 ```
 
@@ -124,16 +150,20 @@ server/
   distill.ts           Claude call: structured output, then grounding
   api.ts               GET /api/health, POST /api/distill (Node middleware, mounted in Vite)
 src/
-  App.tsx              Routes: / · /library · /library/people/:key · /library/topics/:key · /library/:id · /you · /ask
+  App.tsx              Routes: / · /library · /library/people/:id · /library/topics/:key · /library/:id · /you · /you/profile · /ask
   styles/              tokens.css (color, type, space, motion), base.css, transitions.css
   components/          Mark (the three-stroke motif), ListeningVisual (the three listening forms), Orb,
                        ThingsEditorial, ThingList, ThingsEditor, SavedCard, AudioPlayer, Sheet, BottomNav, Avatar, Button, Toggle, Icon
     library/           Library rows (conversation, person, topic, thing) and search highlighting
+    people/            PersonPicker (find or create someone), WhoSheet (name a conversation, or several people),
+                       PersonEditSheet (name, note, photo), MergeSheet
   screens/
-    HomeScreen, LibraryScreen, PersonScreen, TopicScreen, DetailScreen, YouScreen
+    HomeScreen, LibraryScreen, PersonScreen, TopicScreen, DetailScreen, YouScreen, ProfileScreen
     capture/           CaptureFlow (the state machine) and one component per step
   lib/
-    store.tsx          Saved conversations and settings (localStorage)
+    store.tsx          Conversations, people and settings (localStorage); renames, merges and deletes stay consistent
+    people.ts          People records: linking, merging, removing, likely duplicates, "asked before"
+    photo.ts           A chosen photo, squared and kept small, on the device
     library.ts         People, topics and places derived from conversations, and Library search
     yearOfConversations.ts  A year of sample conversations, to preview a full Library
     samples.ts         Sample conversations: realistic, messy transcripts with grounded things
@@ -143,7 +173,7 @@ src/
 tests/                 Vitest
 ```
 
-Everything stays on the device for now: saved conversations in `localStorage`, recordings in IndexedDB (and only when *Keep recordings* is on).
+Everything stays on the device for now: conversations, people and your profile in `localStorage`, recordings in IndexedDB (and only when *Keep original audio* is on).
 
 ## Design language
 
@@ -155,4 +185,4 @@ Everything stays on the device for now: saved conversations in `localStorage`, r
 
 ## Deliberately not built yet
 
-Social features, public profiles, discovery, feeds, followers, likes, comments, messaging, maps, restaurant APIs, recommendations, AI summaries across people, and gamification. Sharing is a basic share sheet only. People, topics and places are derived from saved conversations rather than stored separately, so collections, photos and sync can be added on top later without migrating anything.
+Social features, public profiles, discovery, feeds, followers, likes, comments, messaging, maps, restaurant APIs, recommendations, AI summaries across people, and gamification. Sharing is a basic share sheet only. Also not built: friend requests, follows, contacts syncing, facial recognition, automatic photo capture, online status, account linking and shared profiles. People are small private records that conversations point to; topics and places are derived from conversations. Conversations saved before people had records are linked to them by name on load.

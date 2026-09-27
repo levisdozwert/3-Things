@@ -17,6 +17,7 @@ import { DetailScreen } from "./screens/DetailScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { LibraryScreen } from "./screens/LibraryScreen";
 import { PersonScreen } from "./screens/PersonScreen";
+import { ProfileScreen } from "./screens/ProfileScreen";
 import { TopicScreen } from "./screens/TopicScreen";
 import { YouScreen } from "./screens/YouScreen";
 
@@ -55,6 +56,7 @@ const routes: RouteObject[] = [
           { path: "library/topics/:key", element: <TopicScreen /> },
           { path: "library/:id", element: <DetailScreen /> },
           { path: "you", element: <YouScreen /> },
+          { path: "you/profile", element: <ProfileScreen /> },
         ],
       },
       { path: "ask", element: <CaptureFlow /> },

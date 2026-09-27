@@ -14,7 +14,8 @@ export type Direction = "forward" | "back" | "none";
  */
 export function withTransition(update: () => void, direction: Direction = "none") {
   const doc = document as DocWithTransitions;
-  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const reduce =
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.motion === "calm";
   if (!doc.startViewTransition || reduce) {
     update();
     return;

@@ -66,3 +66,57 @@
   border-radius: 50%;
   background: var(--ink-4);
 }
+
+.photo {
+  overflow: hidden;
+  background: var(--paper-deep);
+}
+
+.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Two people, one conversation: the second tucked behind the first. */
+.pair {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.pair.xs {
+  width: 28px;
+}
+.pair.sm {
+  width: 40px;
+}
+.pair.md {
+  width: 50px;
+}
+.pair.lg {
+  width: 78px;
+}
+.pair.xl {
+  width: 100px;
+}
+
+.pair > .avatar {
+  position: absolute;
+  width: auto;
+  height: 86%;
+  aspect-ratio: 1;
+  font-size: 0.86em;
+  box-shadow: 0 0 0 1.5px var(--paper);
+}
+
+.pair > .avatar:first-child {
+  left: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.pair > .avatar:last-child {
+  right: 0;
+  bottom: 0;
+}

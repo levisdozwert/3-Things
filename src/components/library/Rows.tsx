@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { relativeDay, sourceLine } from "../../lib/format";
 import { matchesAll, matchesAny, type Person, type Topic } from "../../lib/library";
+import { useStore } from "../../lib/store";
 import type { Capture, Thing } from "../../lib/types";
 import { Avatar } from "../Avatar";
 import { Icon } from "../Icon";
@@ -27,6 +28,13 @@ interface ConversationRowProps {
   showTopic?: boolean;
 }
 
+/** The photo the user chose for whoever a conversation is from, when it's one person. */
+function usePhotoOf(capture: Capture): string | undefined {
+  const { getPerson } = useStore();
+  const ids = capture.personIds ?? [];
+  return ids.length === 1 ? getPerson(ids[0])?.photo : undefined;
+}
+
 /** One conversation: person, question, then quiet context. */
 export function ConversationRow({
   capture,
@@ -37,12 +45,13 @@ export function ConversationRow({
   showTopic = true,
 }: ConversationRowProps) {
   const person = capture.person.trim();
+  const photo = usePhotoOf(capture);
   return (
     <li>
       <Link to={`/library/${capture.id}`} viewTransition className={styles.row}>
         {showPerson && (
           <div className={styles.who}>
-            <Avatar name={person} size="sm" />
+            <Avatar name={person} photo={photo} size="sm" />
             <span className={person ? styles.person : styles.unnamed}>
               {person ? <Highlight text={person} terms={terms} /> : sourceLine("")}
             </span>
@@ -102,7 +111,7 @@ export function PersonRow({ person, terms, note }: PersonRowProps) {
   return (
     <li>
       <Link to={`/library/people/${encodeURIComponent(person.key)}`} viewTransition className={styles.personRow}>
-        <Avatar name={person.name} size="md" />
+        <Avatar name={person.name} photo={person.photo} size="md" />
         <div className={styles.personText}>
           <p className={`serif ${styles.personName}`}>
             <Highlight text={person.name} terms={terms} />
@@ -156,6 +165,7 @@ interface ThingRowProps {
 /** A single thing someone said, never without who said it and what was asked. */
 export function ThingRow({ capture, thing, terms }: ThingRowProps) {
   const person = capture.person.trim();
+  const photo = usePhotoOf(capture);
   // When the match is in what they explained rather than the headline, show why it came up.
   const unexplained = terms?.filter((t) => !matchesAll(thing.headline, [t])) ?? [];
   const why = thing.detail && unexplained.length > 0 && matchesAny(thing.detail, unexplained) ? thing.detail : null;
@@ -171,7 +181,7 @@ export function ThingRow({ capture, thing, terms }: ThingRowProps) {
           </p>
         )}
         <p className={styles.source}>
-          <Avatar name={person} size="xs" />
+          <Avatar name={person} photo={photo} size="xs" />
           <span className={styles.sourceName}>{sourceLine(person)}</span>
           <span className={styles.sourceQuestion}>
             <Highlight text={capture.question} terms={terms} />

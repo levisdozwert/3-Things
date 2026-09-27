@@ -16,13 +16,36 @@ function initial(name: string) {
   return (word?.[0] ?? "").toUpperCase();
 }
 
+type Size = "xs" | "sm" | "md" | "lg" | "xl";
+
 interface AvatarProps {
   name: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  /** A photo the user chose for them. Otherwise, a warm initial. */
+  photo?: string;
+  size?: Size;
 }
 
-/** A warm monogram for the person the knowledge came from. */
-export function Avatar({ name, size = "md" }: AvatarProps) {
+/**
+ * A warm monogram for the person the knowledge came from, or the photo the
+ * user added. Several people ("Jason + Sarah") overlap, quietly.
+ */
+export function Avatar({ name, photo, size = "md" }: AvatarProps) {
+  const names = name.split(" + ").filter((n) => n.trim());
+  if (names.length > 1 && !photo) {
+    return (
+      <span className={`${styles.pair} ${styles[size]}`} aria-hidden="true">
+        <Avatar name={names[0]} size={size} />
+        <Avatar name={names[1]} size={size} />
+      </span>
+    );
+  }
+  if (photo) {
+    return (
+      <span className={`${styles.avatar} ${styles[size]} ${styles.photo}`} aria-hidden="true">
+        <img src={photo} alt="" />
+      </span>
+    );
+  }
   const letter = initial(name);
   return (
     <span className={`${styles.avatar} ${styles[size]} ${styles[letter ? toneFor(name) : "empty"]}`} aria-hidden="true">

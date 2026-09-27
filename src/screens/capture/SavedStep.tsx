@@ -5,6 +5,7 @@ import { Icon } from "../../components/Icon";
 import { SavedCard } from "../../components/SavedCard";
 import { Sheet } from "../../components/Sheet";
 import { TOPICS } from "../../components/ThingsEditor";
+import { WhoSheet } from "../../components/people/WhoSheet";
 import { shareCapture, type ShareResult } from "../../lib/share";
 import { useStore } from "../../lib/store";
 import type { Capture } from "../../lib/types";
@@ -13,6 +14,8 @@ import styles from "./SavedStep.module.css";
 
 interface SavedStepProps {
   capture: Capture;
+  /** They were new to the Library just now: offer, never require, a little context. */
+  introduced?: boolean;
   onDone: () => void;
 }
 
@@ -21,9 +24,14 @@ const SHARE_LABEL: Partial<Record<ShareResult, string>> = {
   failed: "Couldn’t share",
 };
 
-export function SavedStep({ capture: saved, onDone }: SavedStepProps) {
-  const { getCapture, updateCapture } = useStore();
+export function SavedStep({ capture: saved, introduced = false, onDone }: SavedStepProps) {
+  const { getCapture, updateCapture, getPerson, updatePerson, setSpeakers } = useStore();
   const capture = getCapture(saved.id) ?? saved;
+  const ids = capture.personIds ?? [];
+  const person = ids.length === 1 ? getPerson(ids[0]) : undefined;
+  const [naming, setNaming] = useState(false);
+  const [noting, setNoting] = useState(false);
+  const [note, setNote] = useState("");
   const [shared, setShared] = useState<ShareResult | null>(null);
   const [filing, setFiling] = useState(false);
   const [topic, setTopic] = useState(capture.topic);
@@ -68,6 +76,34 @@ export function SavedStep({ capture: saved, onDone }: SavedStepProps) {
             Change
           </button>
         </p>
+        {ids.length === 0 && (
+          <p className={styles.filed}>
+            <span>From this conversation</span>
+            <button type="button" onClick={() => setNaming(true)}>
+              Add a name
+            </button>
+          </p>
+        )}
+        {person && introduced && (
+          <p className={styles.filed}>
+            {person.note ? (
+              <span>
+                {person.name}: <strong>{person.note}</strong>
+              </span>
+            ) : (
+              <span>{person.name} is new to your Library.</span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setNote(person.note ?? "");
+                setNoting(true);
+              }}
+            >
+              {person.note ? "Edit" : "Add a little context"}
+            </button>
+          </p>
+        )}
       </div>
 
       <div className={flow.footer}>
@@ -85,6 +121,54 @@ export function SavedStep({ capture: saved, onDone }: SavedStepProps) {
           </Button>
         </div>
       </div>
+
+      <WhoSheet
+        open={naming}
+        speakers={[]}
+        onClose={() => setNaming(false)}
+        onDone={(speakers) => {
+          setSpeakers(capture.id, speakers);
+          setNaming(false);
+        }}
+      />
+
+      {person && (
+        <Sheet
+          open={noting}
+          title={`A little context about ${person.name}`}
+          onClose={() => setNoting(false)}
+          actions={
+            <>
+              <Button
+                variant="ink"
+                block
+                onClick={() => {
+                  updatePerson(person.id, { note: note.trim() });
+                  setNoting(false);
+                }}
+              >
+                Save
+              </Button>
+              <Button variant="text" size="md" block onClick={() => setNoting(false)}>
+                Not now
+              </Button>
+            </>
+          }
+        >
+          <input
+            className={styles.noteInput}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Friend, former manager, met at a conference…"
+            aria-label={`A little context about ${person.name}`}
+            maxLength={80}
+            autoComplete="off"
+            enterKeyHint="done"
+            data-autofocus
+          />
+          <p className={styles.noteHint}>Just for you, to remember who they are. Nobody else can see it.</p>
+        </Sheet>
+      )}
 
       <Sheet
         open={filing}

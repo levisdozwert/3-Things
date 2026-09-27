@@ -1,11 +1,24 @@
+import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { Wordmark } from "../components/Mark";
+import { listPeople } from "../lib/library";
 import { starterQuestions } from "../lib/samples";
+import { useStore } from "../lib/store";
 import styles from "./HomeScreen.module.css";
 
 export function HomeScreen() {
   const navigate = useNavigate();
+  const { captures, people } = useStore();
+
+  // Once asking people things is a habit (not on a first visit), the people
+  // you learn from most recently are one tap from asking again.
+  const recent = useMemo(() => {
+    const everyone = listPeople(captures, people);
+    const named = captures.filter((c) => c.person.trim()).length;
+    return named >= 5 && everyone.length >= 3 ? everyone.slice(0, 3) : [];
+  }, [captures, people]);
 
   return (
     <main className={styles.home}>
@@ -40,6 +53,24 @@ export function HomeScreen() {
           Type a question
         </Link>
       </section>
+
+      {recent.length > 0 && (
+        <section className={styles.again} aria-labelledby="ask-again">
+          <h2 id="ask-again" className={styles.examplesTitle}>
+            Ask again
+          </h2>
+          <ul className={styles.againList}>
+            {recent.map((p) => (
+              <li key={p.id}>
+                <Link to={`/ask?person=${encodeURIComponent(p.id)}`} viewTransition className={styles.againPerson}>
+                  <Avatar name={p.name} photo={p.photo} size="sm" />
+                  <span>{p.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={styles.examples} aria-labelledby="try-asking">
         <h2 id="try-asking" className={styles.examplesTitle}>

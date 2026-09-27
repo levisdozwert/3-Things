@@ -160,3 +160,22 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+
+.addName,
+.deleteAudio {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+  letter-spacing: 0;
+  vertical-align: 2px;
+}
+
+.deleteAudio {
+  align-self: flex-start;
+  min-height: 36px;
+  color: var(--ink-3);
+}

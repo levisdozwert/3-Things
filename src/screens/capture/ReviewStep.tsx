@@ -5,8 +5,10 @@ import { Button, IconButton } from "../../components/Button";
 import { Mark } from "../../components/Mark";
 import { Sheet } from "../../components/Sheet";
 import { ThingsEditorial } from "../../components/ThingsEditorial";
+import { WhoSheet } from "../../components/people/WhoSheet";
 import type { Draft } from "../../components/ThingsEditor";
 import { sourceLine } from "../../lib/format";
+import type { Speaker } from "../../lib/people";
 import type { Recording, Thing } from "../../lib/types";
 import flow from "./Flow.module.css";
 import styles from "./ReviewStep.module.css";
@@ -16,7 +18,7 @@ interface ReviewStepProps {
   draft: Draft;
   /** A fourth idea the speaker also cared about. Offered, never shown as a fourth thing. */
   extra: Thing | null;
-  onPersonChange: (name: string) => void;
+  onPersonChange: (speakers: Speaker[], label: string) => void;
   /** The conversation, then any follow-ups. */
   recordings: Recording[];
   preview: boolean;
@@ -83,31 +85,22 @@ export function ReviewStep({
           <h1 className={`${flow.question} ${styles.question}`}>{question}</h1>
           <div className={`${styles.from} ${flow.enterLate}`}>
             <Avatar name={person} size="sm" />
-            {naming ? (
-              <input
-                className={styles.nameInput}
-                value={draft.person}
-                autoFocus
-                onChange={(e) => onPersonChange(e.target.value)}
-                onBlur={() => setNaming(false)}
-                onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-                placeholder="Their first name"
-                aria-label="Who shared these?"
-                autoCapitalize="words"
-                autoComplete="off"
-                enterKeyHint="done"
-              />
-            ) : (
-              <>
-                <span className={styles.source}>{source}</span>
-                {!person && (
-                  <button type="button" className={styles.addName} onClick={() => setNaming(true)}>
-                    Add their name
-                  </button>
-                )}
-              </>
+            <span className={styles.source}>{source}</span>
+            {!person && (
+              <button type="button" className={styles.addName} onClick={() => setNaming(true)}>
+                Add their name
+              </button>
             )}
           </div>
+          <WhoSheet
+            open={naming}
+            speakers={draft.speakers}
+            onClose={() => setNaming(false)}
+            onDone={(speakers, label) => {
+              onPersonChange(speakers, label);
+              setNaming(false);
+            }}
+          />
           {(summary.length > 0 || note) && (
             <p className={`${styles.summary} ${flow.enterLate}`} aria-live="polite">
               {summary.length > 0 && <span className={styles.summaryDot} aria-hidden="true" />}

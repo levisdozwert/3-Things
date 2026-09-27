@@ -1,3 +1,4 @@
+import { personIdFor } from "./library";
 import type { Capture } from "./types";
 
 /**
@@ -394,6 +395,7 @@ export function yearOfConversations(now = new Date()): Capture[] {
       id: `year-${i}`,
       question,
       person,
+      personIds: person ? [personIdFor(person)] : [],
       topic,
       ...(place ? { place } : {}),
       things: things.map(([headline, detail], j) => ({ id: `year-${i}-${j}`, headline, detail })),
@@ -406,6 +408,3 @@ export function yearOfConversations(now = new Date()): Capture[] {
   });
 }
 
-export function isYearConversation(capture: Capture): boolean {
-  return capture.id.startsWith("year-");
-}

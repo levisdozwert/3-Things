@@ -23,6 +23,9 @@
   padding: 12px var(--gutter) calc(24px + var(--safe-bottom));
   box-shadow: 0 -1px 0 var(--line);
   animation: sheet-up 380ms var(--ease-out) both;
+  max-height: 92dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @keyframes sheet-up {

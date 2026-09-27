@@ -39,6 +39,41 @@
   padding: 14px 0;
 }
 
+.metaPerson {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 0;
+  text-align: left;
+  font-size: 1.0625rem;
+  font-weight: 540;
+  color: var(--ink);
+}
+
+.metaPerson > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaEmpty {
+  color: var(--ink-3);
+  font-weight: 450;
+}
+
+.metaChange {
+  flex-shrink: 0;
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
 .metaInput::placeholder {
   color: var(--ink-4);
   font-weight: 450;

@@ -1,11 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, type TextareaHTMLAttributes } from "react";
-import { newId } from "../lib/format";
+import { useEffect, useLayoutEffect, useRef, useState, type TextareaHTMLAttributes } from "react";
+import { newId, sourceLine } from "../lib/format";
+import type { Speaker } from "../lib/people";
 import type { Thing } from "../lib/types";
 import { Icon } from "./Icon";
+import { WhoSheet } from "./people/WhoSheet";
 import styles from "./ThingsEditor.module.css";
 
 export interface Draft {
+  /** Who answered, as it reads: "Jason", "Jason + Sarah", or empty. */
   person: string;
+  /** Who answered, as people: someone in the Library, or a new name. */
+  speakers: Speaker[];
   topic: string;
   /** Where it's about, if anywhere. */
   place?: string;
@@ -55,6 +60,7 @@ interface ThingsEditorProps {
 export function ThingsEditor({ value, onChange, focusIndex = null }: ThingsEditorProps) {
   const { things } = value;
   const listRef = useRef<HTMLOListElement>(null);
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     if (focusIndex === null) return;
@@ -81,17 +87,15 @@ export function ThingsEditor({ value, onChange, focusIndex = null }: ThingsEdito
   return (
     <div className={styles.editor}>
       <div className={styles.meta}>
-        <label className={styles.metaRow}>
+        <div className={styles.metaRow}>
           <span className={styles.metaLabel}>From</span>
-          <input
-            className={styles.metaInput}
-            value={value.person}
-            onChange={(e) => onChange({ ...value, person: e.target.value })}
-            placeholder="Their name"
-            autoComplete="off"
-            enterKeyHint="done"
-          />
-        </label>
+          <button type="button" className={styles.metaPerson} onClick={() => setChoosing(true)}>
+            <span className={value.person ? undefined : styles.metaEmpty}>
+              {value.person || sourceLine("").replace(/^From /, "")}
+            </span>
+            <span className={styles.metaChange}>{value.person ? "Change" : "Add a name"}</span>
+          </button>
+        </div>
         <div className={styles.metaRow}>
           <span className={styles.metaLabel} id="topic-label">
             Topic
@@ -124,6 +128,16 @@ export function ThingsEditor({ value, onChange, focusIndex = null }: ThingsEdito
           />
         </label>
       </div>
+
+      <WhoSheet
+        open={choosing}
+        speakers={value.speakers}
+        onClose={() => setChoosing(false)}
+        onDone={(speakers, person) => {
+          onChange({ ...value, speakers, person });
+          setChoosing(false);
+        }}
+      />
 
       <ol className={styles.things} ref={listRef}>
         {things.map((thing, i) => (

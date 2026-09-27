@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { Avatar } from "../../components/Avatar";
 import { Button, IconButton } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { Mark } from "../../components/Mark";
 import { Orb } from "../../components/Orb";
 import { BLOCKING_ERRORS, useSpeechRecognition } from "../../lib/audio/useSpeechRecognition";
 import { detectMode } from "../../lib/distill/client";
-import { tidyQuestion } from "../../lib/format";
+import { listOf, tidyQuestion } from "../../lib/format";
 import { withTransition } from "../../lib/transition";
 import flow from "./Flow.module.css";
 import styles from "./AskStep.module.css";
@@ -42,6 +43,8 @@ type Mode =
 interface AskStepProps {
   initialMode: "voice" | "type";
   initialText: string;
+  /** Asking someone you know: who, and what you've asked them about before. */
+  asking?: { name: string; photo?: string; topics: string[] };
   onContinue: (question: string) => void;
   onClose: () => void;
 }
@@ -50,7 +53,7 @@ interface AskStepProps {
  * The start of the conversation: what do you want to ask them?
  * Speaking is the natural way in; typing is always one tap away.
  */
-export function AskStep({ initialMode, initialText, onContinue, onClose }: AskStepProps) {
+export function AskStep({ initialMode, initialText, asking, onContinue, onClose }: AskStepProps) {
   const speech = useSpeechRecognition({ continuous: false });
   const [mode, setModeNow] = useState<Mode>(
     initialText || initialMode === "type" || !speech.supported ? "typing" : "choose",
@@ -151,6 +154,21 @@ export function AskStep({ initialMode, initialText, onContinue, onClose }: AskSt
     });
   };
 
+  // Context only, never a gate: it helps you not ask the same thing twice by accident.
+  const askingLine = asking && (
+    <div className={`${styles.asking} ${flow.enter}`}>
+      <p className={styles.askingWho}>
+        <Avatar name={asking.name} photo={asking.photo} size="xs" />
+        Asking <strong>{asking.name}</strong>
+      </p>
+      {asking.topics.length > 0 && (
+        <p className={styles.askedAbout}>
+          You’ve asked {asking.name} about {listOf(asking.topics)}.
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <>
       <div className={flow.topbar}>
@@ -165,7 +183,10 @@ export function AskStep({ initialMode, initialText, onContinue, onClose }: AskSt
       {mode === "choose" && (
         <>
           <div className={`${flow.content} ${styles.content}`}>
-            <h1 className={`serif ${styles.heading}`}>What do you want to ask?</h1>
+            {askingLine}
+            <h1 className={`serif ${styles.heading}`}>
+              {asking ? `What do you want to ask ${asking.name}?` : "What do you want to ask?"}
+            </h1>
             <p className={`${styles.lede} ${flow.enterLate}`}>Ask it the way you would ask them.</p>
             <section className={`${styles.examples} ${flow.enterLate}`} aria-labelledby="examples-label">
               <p id="examples-label" className={flow.label}>
@@ -307,8 +328,9 @@ export function AskStep({ initialMode, initialText, onContinue, onClose }: AskSt
       {mode === "typing" && (
         <>
           <div className={`${flow.content} ${styles.content} ${styles.typing}`}>
+            {askingLine}
             <label htmlFor="question-input" className={`${flow.label} ${styles.typingLabel}`}>
-              What do you want to ask?
+              {asking ? `What do you want to ask ${asking.name}?` : "What do you want to ask?"}
             </label>
             <textarea
               id="question-input"

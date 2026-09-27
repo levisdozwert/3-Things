@@ -14,14 +14,45 @@ export interface Thing {
 }
 
 /**
+ * Someone the user has learned from, as the user knows them. A private
+ * reference inside the user's own Library: never a public account, never
+ * searchable by anyone else, and created only because the user named them.
+ */
+export interface PersonRecord {
+  id: string;
+  /** What the user calls them: "Jason", "Mom", "Barista at Cortaditos". */
+  name: string;
+  /** One small private note, for the user's memory only: "Met at NJ Tech meetup". */
+  note?: string;
+  /** A photo the user chose. Never taken automatically, never used to recognize anyone. */
+  photo?: string;
+  createdAt: string;
+  /**
+   * Reserved for a future where they have their own 3 Things account. Only an
+   * explicit action could ever set it; nothing does today. Either way, this
+   * record stays the user's own private representation of them.
+   */
+  account?: { id: string; linkedAt: string };
+}
+
+/**
  * A saved conversation: one question, one person, up to three things.
  * The knowledge is the valuable object; the recording is only a way to verify it.
  */
 export interface Capture {
   id: string;
   question: string;
-  /** Who answered. Empty when the user didn't add a name. */
+  /**
+   * Who answered, as it reads: "Jason", "Jason + Sarah", or empty when the user
+   * didn't add a name. Kept in step with the people records it points to.
+   */
   person: string;
+  /**
+   * The people who answered. None when unnamed; several when more than one
+   * person spoke, in which case the things belong to the conversation, not to
+   * any one of them.
+   */
+  personIds?: string[];
   topic: string;
   /** Where it's about, when the question or answer named a place ("Boston"). Quiet metadata for now. */
   place?: string;
@@ -41,13 +72,25 @@ export interface Capture {
   keptClose?: boolean;
 }
 
+/** Just enough to be you in the app. No birthday, job, school or handles. */
+export interface Profile {
+  firstName: string;
+  lastName: string;
+  /** What 3 Things calls you. Falls back to the first name. */
+  preferredName: string;
+  photo?: string;
+}
+
 export interface Settings {
-  name: string;
+  profile: Profile;
   consentReminder: boolean;
   keepRecordings: boolean;
   showSamples: boolean;
   /** A year of sample conversations, to see how a full Library feels. */
   fullLibrary: boolean;
+  /** Fewer animations between screens, on top of the device's own setting. */
+  calmMotion: boolean;
+  largerText: boolean;
 }
 
 /** What the listening step hands to the rest of the flow. */

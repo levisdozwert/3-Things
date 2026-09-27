@@ -164,3 +164,24 @@ textarea:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+/* Appearance, from You. Calmer motion goes further than the device setting alone. */
+:root[data-motion="calm"] *,
+:root[data-motion="calm"] *::before,
+:root[data-motion="calm"] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  scroll-behavior: auto !important;
+}
+
+:root[data-motion="calm"]::view-transition-group(*),
+:root[data-motion="calm"]::view-transition-old(*),
+:root[data-motion="calm"]::view-transition-new(*) {
+  animation: none !important;
+}
+
+:root[data-text="large"] {
+  font-size: 112.5%;
+}

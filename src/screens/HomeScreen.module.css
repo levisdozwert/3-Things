@@ -155,6 +155,36 @@
   animation: rise var(--t-slow) var(--ease-out) 120ms both;
 }
 
+/* Subordinate to Ask for 3: a few names, one tap each. */
+.again {
+  margin-bottom: 26px;
+  animation: rise var(--t-slow) var(--ease-out) 80ms both;
+}
+
+.againList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.againPerson {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 6px;
+  border-radius: var(--r-pill);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: 0.9375rem;
+  font-weight: 560;
+  color: var(--ink);
+  transition: background-color var(--t-fast) var(--ease-soft);
+}
+
+.againPerson:hover {
+  background: var(--paper-sunken);
+}
+
 .examplesTitle {
   font-size: var(--text-meta);
   font-weight: 540;

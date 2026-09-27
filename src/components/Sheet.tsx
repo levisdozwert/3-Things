@@ -9,14 +9,15 @@ interface SheetProps {
   onClose: () => void;
 }
 
-/** A calm bottom sheet for the rare moments that need a confirmation. */
+/** A calm bottom sheet for the rare moments that need a decision or a few words. */
 export function Sheet({ open, title, children, actions, onClose }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
-    panelRef.current?.querySelector<HTMLElement>("button")?.focus();
+    const panel = panelRef.current;
+    (panel?.querySelector<HTMLElement>("[data-autofocus]") ?? panel?.querySelector<HTMLElement>("button"))?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };

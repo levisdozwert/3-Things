@@ -1,3 +1,4 @@
+import { personIdFor } from "./library";
 import type { Capture } from "./types";
 
 /**
@@ -294,6 +295,35 @@ export const sampleConversations: SampleConversation[] = [
         headline: "Get your lobster roll from a shack",
         detail: "Not a restaurant. The roadside ones with a line of locals are always better.",
         quote: "The ones on the side of the road with a line of locals are always better",
+      },
+    ],
+  },
+  {
+    // Probably the same Jason, named differently one day. The Library asks, once.
+    key: "jason-patel-pitch",
+    person: "Jason Patel",
+    question: "What are three things you'd tell someone pitching investors for the first time?",
+    topic: "Startup",
+    keywords: ["pitch", "pitching", "investors"],
+    durationSec: 58,
+    seed: { daysAgo: 66, time: "17:20" },
+    transcript:
+      "Pitching for the first time? Okay. Lead with the problem, not the product. Investors decide in the first two minutes whether they care, so make them feel the problem before you show them anything. Second, know your numbers without looking. If you have to check a slide for your churn, you've lost the room. And practice with people who'll be honest. Your friends will say it's great. Find someone who's sat on the other side of the table.",
+    things: [
+      {
+        headline: "Lead with the problem, not the product",
+        detail: "Investors decide in the first two minutes whether they care, so make them feel the problem before you show them anything.",
+        quote: "Lead with the problem, not the product. Investors decide in the first two minutes whether they care",
+      },
+      {
+        headline: "Know your numbers without looking",
+        detail: "If you have to check a slide for your churn, you've lost the room.",
+        quote: "know your numbers without looking. If you have to check a slide for your churn, you've lost the room",
+      },
+      {
+        headline: "Practice with people who'll be honest",
+        detail: "Your friends will say it's great. Find someone who's sat on the other side of the table.",
+        quote: "Your friends will say it's great. Find someone who's sat on the other side of the table",
       },
     ],
   },
@@ -748,10 +778,29 @@ export function seedCaptures(now = new Date()): Capture[] {
       durationSec: c.durationSec,
       hasAudio: false,
       origin: "sample" as const,
+      personIds: c.person ? [personIdFor(c.person)] : [],
       ...(c.place ? { place: c.place } : {}),
       ...(c.seed!.keptClose ? { keptClose: true } : {}),
     }));
 }
+
+/**
+ * The little context a user might have added about the people in the samples.
+ * Private notes in their own words, not fields.
+ */
+export const sampleNotes: Record<string, string> = {
+  Jason: "Former colleague from my first startup",
+  Sarah: "College roommate, lives in Boston",
+  Maya: "Founder friend from the accelerator",
+  Carlos: "Met at a fintech meetup",
+  "Professor Reyes": "Strategy professor",
+  Alex: "Neighbor in Jersey City",
+  Daniel: "Friend from the running club",
+  "Dr. Kim": "Our family doctor",
+  "Coach Miller": "High school track coach",
+  Priya: "Manager at my internship",
+  Kenji: "Friend from Tokyo",
+};
 
 /** The home screen's inspiration. The user asks another person; nobody answers these for them. */
 export const starterQuestions = [

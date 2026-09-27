@@ -1,0 +1,262 @@
+/* People, lightly: a name, how often you've talked, maybe a note. Never a profile card. */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+}
+
+.search {
+  width: 100%;
+  border: 0;
+  border-bottom: 1.5px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 0 10px;
+  font-size: 1.375rem;
+  font-weight: 560;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  caret-color: var(--ember);
+  transition: border-color var(--t-fast) var(--ease-soft);
+}
+
+.search:focus {
+  border-bottom-color: var(--ember);
+}
+
+.search::placeholder {
+  color: var(--ink-4);
+  font-weight: 450;
+}
+
+.listLabel {
+  margin-top: 18px;
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.options {
+  margin-top: 6px;
+}
+
+.options > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 0;
+  text-align: left;
+  transition: opacity var(--t-fast) var(--ease-soft);
+}
+
+.option:active {
+  opacity: 0.6;
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.optionName {
+  font-size: 1.0625rem;
+  font-weight: 580;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionMeta {
+  margin-top: 1px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create .optionName {
+  color: var(--ember-ink);
+}
+
+.plus {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ember-ink);
+  box-shadow: inset 0 0 0 1.5px var(--ember-soft);
+}
+
+/* Chosen people, when several answered together. */
+.chosen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 6px 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--paper-sunken);
+  font-size: 0.9375rem;
+  font-weight: 560;
+  color: var(--ink);
+}
+
+.chip button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink-3);
+}
+
+.sheetNote {
+  margin-top: 14px;
+  font-size: var(--text-meta);
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.sheetLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 14px;
+}
+
+.link {
+  min-height: 40px;
+  font-size: var(--text-small);
+  font-weight: 540;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field + .field {
+  margin-top: 18px;
+}
+
+.fieldLabel {
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1.5px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 0 8px;
+  font-size: 1.125rem;
+  font-weight: 520;
+  color: var(--ink);
+  caret-color: var(--ember);
+}
+
+.input:focus {
+  border-bottom-color: var(--ember);
+}
+
+.input::placeholder {
+  color: var(--ink-4);
+  font-weight: 420;
+}
+
+.photoRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.photoActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+}
+
+.hiddenFile {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* "Are these the same person?" Two names side by side, nothing more. */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pairPerson {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: var(--paper-sunken);
+  text-align: left;
+  min-width: 0;
+}
+
+.pairPerson[aria-checked="true"] {
+  background: var(--ember-wash);
+  box-shadow: inset 0 0 0 1.5px var(--ember-soft);
+}
+
+.pairName {
+  font-family: var(--font-serif);
+  font-size: 1.1875rem;
+  line-height: 1.2;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "opsz" 30;
+  overflow-wrap: anywhere;
+}
+
+.pairMeta {
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.danger {
+  color: var(--ember-ink);
+  text-decoration-color: var(--ember-soft);
+}
+
+.sheetNote strong {
+  font-weight: 600;
+  color: var(--ink);
+}

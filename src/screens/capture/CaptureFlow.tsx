@@ -9,6 +9,8 @@ import { useSpeechRecognition } from "../../lib/audio/useSpeechRecognition";
 import { detectMode, findThreeThings, followUpThings, NothingHeardError } from "../../lib/distill/client";
 import type { DistilledThing } from "../../lib/distill/contract";
 import { newId, tidyQuestion } from "../../lib/format";
+import { listPeople } from "../../lib/library";
+import { isNew, nameKey, speakerLabel, type Speaker } from "../../lib/people";
 import { useStore } from "../../lib/store";
 import { withTransition, type Direction } from "../../lib/transition";
 import type { Capture, Recording, Thing } from "../../lib/types";
@@ -49,7 +51,7 @@ const MAX_RECORDING_SEC = 30 * 60;
 export function CaptureFlow() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { settings, saveCapture } = useStore();
+  const { settings, saveCapture, captures, people, getPerson } = useStore();
 
   const recorder = useRecorder();
   const answer = useSpeechRecognition({ continuous: true });
@@ -58,7 +60,17 @@ export function CaptureFlow() {
   const [step, setStep] = useState<Step>(initialQuestion ? "who" : "ask");
   const [askMode, setAskMode] = useState<"voice" | "type">(params.get("type") ? "type" : "voice");
   const [question, setQuestion] = useState(initialQuestion);
-  const [person, setPerson] = useState(params.get("person")?.trim() ?? "");
+  // "Ask Jason something": start with Jason already chosen.
+  const [speakers, setSpeakers] = useState<Speaker[]>(() => {
+    const asked = params.get("person")?.trim();
+    if (!asked) return [];
+    if (getPerson(asked)) return [{ id: asked }];
+    const named = people.find((p) => nameKey(p.name) === nameKey(asked));
+    return [named ? { id: named.id } : { name: asked }];
+  });
+  const person = speakerLabel(speakers, people);
+  const [preselected] = useState(() => (speakers[0] && !isNew(speakers[0]) ? speakers[0].id : null));
+  const [introduced, setIntroduced] = useState(false);
 
   const [starting, setStarting] = useState(false);
   const [listenProblem, setListenProblem] = useState<ListeningProblem | null>(null);
@@ -188,6 +200,7 @@ export function CaptureFlow() {
         setFresh([]);
         setDraft({
           person: heardFrom,
+          speakers,
           topic: result.response.topic,
           place: result.response.place,
           things: result.response.things.map((t) => ({ id: newId(), ...t })),
@@ -201,7 +214,7 @@ export function CaptureFlow() {
         go("problem");
       }
     },
-    [question, go],
+    [question, go, speakers],
   );
 
   /** What the speaker said when the asker went back to them: more things, or a clearer one. */
@@ -344,6 +357,7 @@ export function CaptureFlow() {
       id,
       question,
       person: value.person.trim(),
+      personIds: [],
       topic: value.topic || "Life",
       ...(value.place?.trim() ? { place: value.place.trim() } : {}),
       things,
@@ -354,8 +368,8 @@ export function CaptureFlow() {
       ...(edited && !manual ? { edited: true } : {}),
       ...(preview && !manual ? { preview: true } : {}),
     };
-    saveCapture(capture);
-    setSaved(capture);
+    setIntroduced(value.speakers.length === 1 && isNew(value.speakers[0]));
+    setSaved(saveCapture(capture, value.speakers));
     setSaving(false);
     go("saved");
   };
@@ -386,9 +400,13 @@ export function CaptureFlow() {
     setPreview(false);
     setExtra(null);
     setEditFocus(0);
-    setDraft({ person, topic: "", things: [{ id: newId(), headline: "", detail: "" }] });
+    setDraft({ person, speakers, topic: "", things: [{ id: newId(), headline: "", detail: "" }] });
     go("edit");
   };
+
+  // Before a new question with someone you know: what you've asked them before.
+  const known = preselected ? listPeople(captures, people).find((p) => p.id === preselected) : undefined;
+  const askingContext = known ? { name: known.name, photo: known.photo, topics: known.topics.slice(0, 3) } : undefined;
 
   // ── Render ─────────────────────────────────────────────────
 
@@ -400,6 +418,7 @@ export function CaptureFlow() {
         <AskStep
           initialMode={askMode}
           initialText={question}
+          asking={askingContext}
           onContinue={(q) => {
             setQuestion(tidyQuestion(q));
             go("who");
@@ -411,11 +430,11 @@ export function CaptureFlow() {
       {step === "who" && (
         <WhoStep
           question={question}
-          person={person}
-          onPersonChange={setPerson}
+          speakers={speakers}
+          onChange={setSpeakers}
           onContinue={() => go("ready")}
           onSkip={() => {
-            setPerson("");
+            setSpeakers([]);
             go("ready");
           }}
           onBack={() => {
@@ -478,7 +497,7 @@ export function CaptureFlow() {
           question={question}
           draft={draft}
           extra={extra}
-          onPersonChange={(name) => setDraft({ ...draft, person: name })}
+          onPersonChange={(next, label) => setDraft({ ...draft, speakers: next, person: label })}
           recordings={recordings}
           preview={preview}
           saving={saving}
@@ -527,7 +546,7 @@ export function CaptureFlow() {
         />
       )}
 
-      {step === "saved" && saved && <SavedStep capture={saved} onDone={leave} />}
+      {step === "saved" && saved && <SavedStep capture={saved} introduced={introduced} onDone={leave} />}
 
       <Sheet
         open={confirm === "recording"}

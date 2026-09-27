@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useState, type CSSProperties } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AudioPlayer } from "../components/AudioPlayer";
 import { Avatar } from "../components/Avatar";
@@ -6,9 +6,10 @@ import { Button, IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
 import { Sheet } from "../components/Sheet";
 import { ThingsEditorial } from "../components/ThingsEditorial";
+import { WhoSheet } from "../components/people/WhoSheet";
 import { loadRecording } from "../lib/audio/audioStore";
 import { calendarDate, duration, sourceLine } from "../lib/format";
-import { personKey, topicKey } from "../lib/library";
+import { topicKey } from "../lib/library";
 import { shareCapture, type ShareResult } from "../lib/share";
 import { useStore } from "../lib/store";
 import { useBack } from "../lib/useBack";
@@ -25,7 +26,7 @@ export function DetailScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const back = useBack("/library");
-  const { getCapture, updateCapture, deleteCapture, toggleKeepClose } = useStore();
+  const { getCapture, getPerson, updateCapture, setSpeakers, deleteCapture, deleteAudio, toggleKeepClose } = useStore();
   const capture = getCapture(id);
   // Arriving from a search result: bring that one thing forward.
   const focus = (location.state as { focus?: string } | null)?.focus;
@@ -33,6 +34,8 @@ export function DetailScreen() {
   const [editing, setEditing] = useState(false);
   const [clips, setClips] = useState<Blob[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmAudio, setConfirmAudio] = useState(false);
+  const [naming, setNaming] = useState(false);
   const [shared, setShared] = useState<ShareResult | null>(null);
 
   const hasAudio = capture?.hasAudio ?? false;
@@ -73,6 +76,9 @@ export function DetailScreen() {
 
   const person = capture.person.trim();
   const kept = Boolean(capture.keptClose);
+  const ids = capture.personIds ?? [];
+  const members = ids.flatMap((pid) => getPerson(pid) ?? []);
+  const speakers = ids.map((pid) => ({ id: pid }));
 
   return (
     <main className={styles.detail}>
@@ -96,18 +102,26 @@ export function DetailScreen() {
 
       <header className={styles.header}>
         <div className={styles.person}>
-          <Avatar name={person} size="lg" />
+          <Avatar name={person} photo={members.length === 1 ? members[0].photo : undefined} size="lg" />
           <div>
-            {person ? (
-              <Link
-                to={`/library/people/${encodeURIComponent(personKey(person))}`}
-                viewTransition
-                className={`serif ${styles.name} ${styles.nameLink}`}
-              >
-                {person}
-              </Link>
+            {members.length > 0 ? (
+              <p className={`serif ${styles.name}`}>
+                {members.map((m, i) => (
+                  <Fragment key={m.id}>
+                    {i > 0 && " + "}
+                    <Link to={`/library/people/${encodeURIComponent(m.id)}`} viewTransition className={styles.nameLink}>
+                      {m.name}
+                    </Link>
+                  </Fragment>
+                ))}
+              </p>
             ) : (
-              <p className={`serif ${styles.name} ${styles.unnamed}`}>{sourceLine("")}</p>
+              <p className={`serif ${styles.name} ${styles.unnamed}`}>
+                {sourceLine("")}{" "}
+                <button type="button" className={styles.addName} onClick={() => setNaming(true)}>
+                  Add a name
+                </button>
+              </p>
             )}
             <p className={styles.meta}>
               {calendarDate(capture.recordedAt)}
@@ -146,6 +160,11 @@ export function DetailScreen() {
             label={i === 0 ? "Listen back" : "Listen to the follow-up"}
           />
         ))}
+        {clips.length > 0 && (
+          <button type="button" className={styles.deleteAudio} onClick={() => setConfirmAudio(true)}>
+            Delete the recording
+          </button>
+        )}
         {capture.preview && (
           <p className={flow.note}>
             <Mark size="sm" />
@@ -173,12 +192,12 @@ export function DetailScreen() {
           <div className={flow.flow}>
             <EditStep
               question={capture.question}
-              draft={{ person: capture.person, topic: capture.topic, place: capture.place, things: capture.things }}
+              draft={{ person: capture.person, speakers, topic: capture.topic, place: capture.place, things: capture.things }}
               saveLabel="Save changes"
               onCancel={() => setEditing(false)}
               onSave={(draft) => {
+                if (JSON.stringify(draft.speakers) !== JSON.stringify(speakers)) setSpeakers(capture.id, draft.speakers);
                 updateCapture(capture.id, {
-                  person: draft.person.trim(),
                   topic: draft.topic,
                   place: draft.place?.trim() || undefined,
                   things: draft.things.map((t) => ({ ...t, headline: t.headline.trim(), detail: t.detail.trim() })),
@@ -190,6 +209,42 @@ export function DetailScreen() {
           </div>
         </div>
       )}
+
+      <WhoSheet
+        open={naming}
+        speakers={speakers}
+        onClose={() => setNaming(false)}
+        onDone={(next) => {
+          setSpeakers(capture.id, next);
+          setNaming(false);
+        }}
+      />
+
+      <Sheet
+        open={confirmAudio}
+        title="Delete the recording?"
+        onClose={() => setConfirmAudio(false)}
+        actions={
+          <>
+            <Button
+              variant="ink"
+              block
+              onClick={() => {
+                deleteAudio(capture.id);
+                setClips([]);
+                setConfirmAudio(false);
+              }}
+            >
+              Delete recording
+            </Button>
+            <Button variant="text" size="md" block onClick={() => setConfirmAudio(false)}>
+              Cancel
+            </Button>
+          </>
+        }
+      >
+        The three things stay. Only the audio is removed from this device, and you won’t be able to listen back.
+      </Sheet>
 
       <Sheet
         open={confirmDelete}
