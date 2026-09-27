@@ -5,14 +5,19 @@ import { Avatar } from "../components/Avatar";
 import { Button, IconButton } from "../components/Button";
 import { Mark } from "../components/Mark";
 import { Sheet } from "../components/Sheet";
-import { ThingList } from "../components/ThingList";
+import { ThingsEditorial } from "../components/ThingsEditorial";
 import { loadRecording } from "../lib/audio/audioStore";
-import { calendarDate, duration, fromLine } from "../lib/format";
+import { calendarDate, duration, sourceLine } from "../lib/format";
+import { shareCapture, type ShareResult } from "../lib/share";
 import { useStore } from "../lib/store";
 import { EditStep } from "./capture/EditStep";
 import flow from "./capture/Flow.module.css";
 import styles from "./DetailScreen.module.css";
 
+/**
+ * A saved 3 Things: the person, the question, and what they said.
+ * Metadata stays quiet; the knowledge dominates. The recording is secondary.
+ */
 export function DetailScreen() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -20,18 +25,24 @@ export function DetailScreen() {
   const capture = getCapture(id);
 
   const [editing, setEditing] = useState(false);
-  const [showQuotes, setShowQuotes] = useState(false);
-  const [audio, setAudio] = useState<Blob | null>(null);
+  const [clips, setClips] = useState<Blob[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [shared, setShared] = useState<ShareResult | null>(null);
 
   const hasAudio = capture?.hasAudio ?? false;
   useEffect(() => {
     let alive = true;
-    if (hasAudio) void loadRecording(id).then((blob) => alive && setAudio(blob));
+    if (hasAudio) void loadRecording(id).then((blobs) => alive && setClips(blobs));
     return () => {
       alive = false;
     };
   }, [id, hasAudio]);
+
+  useEffect(() => {
+    if (!shared) return;
+    const timeout = window.setTimeout(() => setShared(null), 2600);
+    return () => window.clearTimeout(timeout);
+  }, [shared]);
 
   if (!capture) {
     return (
@@ -46,55 +57,54 @@ export function DetailScreen() {
     );
   }
 
-  const hasQuotes = capture.things.some((t) => t.quote);
   const back = () => navigate("/library", { viewTransition: true });
+  const person = capture.person.trim();
+  const meta = [calendarDate(capture.recordedAt), capture.topic, capture.durationSec > 0 ? duration(capture.durationSec) : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <main className={styles.detail}>
       <div className={styles.topbar}>
         <IconButton icon="back" label="Your 3 Things" onClick={back} />
-        <Button variant="text" size="sm" icon="pencil" onClick={() => setEditing(true)}>
-          Edit
-        </Button>
+        <div className={styles.actions}>
+          {shared === "copied" && <span className={styles.copied}>Copied</span>}
+          <IconButton icon="share" label="Share" onClick={async () => setShared(await shareCapture(capture))} />
+          <Button variant="text" size="sm" icon="pencil" onClick={() => setEditing(true)}>
+            Edit
+          </Button>
+        </div>
       </div>
 
       <header className={styles.header}>
+        <div className={styles.person}>
+          <Avatar name={person} size="lg" />
+          <div>
+            <p className={`serif ${styles.name} ${person ? "" : styles.unnamed}`}>{person || sourceLine("")}</p>
+            <p className={styles.meta}>{meta}</p>
+          </div>
+        </div>
+
+        <p className={styles.label}>Question</p>
         <h1
           className={`serif ${styles.question}`}
           style={{ viewTransitionName: `question-${capture.id}` } as CSSProperties}
         >
           {capture.question}
         </h1>
-        <div className={styles.from}>
-          <Avatar name={capture.person} size="md" />
-          <div>
-            <p className={styles.fromLine}>{fromLine(capture.things.length, capture.person)}</p>
-            <p className={styles.meta}>
-              {capture.topic} · Recorded {calendarDate(capture.recordedAt)}
-              {capture.durationSec > 0 && ` · ${duration(capture.durationSec)}`}
-            </p>
-          </div>
-        </div>
       </header>
 
-      <ThingList
-        things={capture.things}
-        divided
-        showQuotes={showQuotes}
-        person={capture.person}
-        showEmptyPositions
-      />
+      <ThingsEditorial things={capture.things} person={person} />
 
       <div className={styles.after}>
-        {hasQuotes && (
-          <button type="button" className={styles.quotes} onClick={() => setShowQuotes((v) => !v)} aria-pressed={showQuotes}>
-            <span className="serif" aria-hidden="true">
-              “
-            </span>
-            {showQuotes ? "Hide their words" : "In their words"}
-          </button>
-        )}
-        {audio && <AudioPlayer blob={audio} durationSec={capture.durationSec} />}
+        {clips.map((clip, i) => (
+          <AudioPlayer
+            key={i}
+            blob={clip}
+            durationSec={i === 0 ? capture.durationSec : 0}
+            label={i === 0 ? "Listen back" : "Listen to the follow-up"}
+          />
+        ))}
         {capture.preview && (
           <p className={flow.note}>
             <Mark size="sm" />
@@ -113,7 +123,7 @@ export function DetailScreen() {
 
       <footer className={styles.footer}>
         <button type="button" className={styles.remove} onClick={() => setConfirmDelete(true)}>
-          Remove from your 3 Things
+          Remove from your 3&nbsp;Things
         </button>
       </footer>
 
@@ -161,8 +171,7 @@ export function DetailScreen() {
           </>
         }
       >
-        {capture.person ? `What ${capture.person} shared` : "What they shared"} and any recording will be removed from
-        this device.
+        {person ? `What ${person} shared` : "What they shared"} and any recording will be removed from this device.
       </Sheet>
     </main>
   );

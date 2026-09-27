@@ -46,7 +46,7 @@ function Row({ capture, matchedThing }: Result) {
                 <span className={styles.from}>From</span> {capture.person}
               </>
             ) : (
-              <span className={styles.from}>From someone</span>
+              <span className={styles.from}>From this conversation</span>
             )}
           </span>
           <Mark size="sm" tone="muted" filled={capture.things.length} className={styles.mark} />

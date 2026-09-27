@@ -20,10 +20,12 @@ Ask → Listen → Understand → 3 Things → Save
 | | **Ready** | The question in quotes, *Ready when Jason is* (or *they are*), *Let them answer naturally…*, the one-line consent reminder, and the strongest button in the app: **Start listening**. Its three marks grow into the listening screen's three forms. |
 | Listen | **Listening** | Focus mode. *Listening to Jason*, the question, three vertical forms that respond to the voice, one line of copy, and Pause, Stop and a quiet `01:42` timer. No transcript. After six seconds untouched, the controls fade back. In silence, *Take your time.*, later *Still listening.*, and it never stops on its own. |
 | | **Got it.** | Stop gives a small haptic tap where the phone supports it. The forms settle back into the mark and the screen says *Got it.*, then moves on to *Finding the three things*. |
-| Understand | **Processing** | *Finding the three things*, with the status cycling *Listening back → Finding the main ideas → Keeping the context → Making it clear*. Three empty positions wait for the answers. |
-| 3 Things | **Review** | *Did we get their 3 right?* The things appear 1, 2, 3 in sequence. **Looks right** saves in one tap. **Edit** and **Listen back** are there when needed. |
-| | **Edit** | Change a headline or explanation, reorder, remove, or add something they said. |
-| Save | **Saved** | A keepsake card: question, *3 Things from Alex*, the three headlines and *Recorded Sep 27*. |
+| Understand | **Processing** | *Finding the three things*, with the status cycling *Listening back → Finding the main ideas → Keeping the context → Making it clear*. The three forms from *Got it.* move into three positions, which become 01, 02 and 03 on the result. |
+| Extract | **Result** | The question, then *3 Things from Jason* (or *From this conversation*), then three distilled thoughts set editorially: a large 01, the idea, one to three sentences of their context, and, rarely, a short quote they actually said. |
+| Verify | **Review** | At the bottom, *Did we get their 3 right?* **Looks right** saves in one tap; **Edit** and **Listen back** are there when needed. Only when it's true: *We found 2 clear things* with **Ask for one more**; *One thing needs clarification* with **Clarify**, **Edit**, **Keep as-is**; *There was one more idea worth keeping* with **See it** to swap it in. |
+| | **Edit** | Change a headline or its context, reorder, remove, or add something they said. **Done** returns to the review. No model settings, confidence numbers or transcript. |
+| Save | **Saved** | *Saved to your 3 Things*, a keepsake card, **Done**, and a basic **Share** (the share sheet, or copy to clipboard). |
+| | **Saved detail** | The person first, a quiet line with date and topic, the question, then the three things. Listen back stays secondary. |
 
 The recording never interrupts the conversation. If someone gives two things or ten, tells a story, changes their mind or answers a follow-up question from the person asking, the app just keeps listening. Sorting that out happens afterwards (see the editor's brief below).
 
@@ -31,17 +33,37 @@ Problems get one plain sentence and one way forward: *We couldn't access your mi
 
 Plus **Library** (*Your 3 Things*: search across people, questions and things, grouped by This week / Earlier) and **You** (profile, listening settings, export, and a short explanation of how 3 Things listens). Navigation is three tabs: Home, Library, You.
 
+## How the three are chosen
+
+Real answers are messy, and the editor is told to expect that (full brief in [`server/prompt.ts`](server/prompt.ts)):
+
+- **More than three ideas:** keep the three the speaker emphasized most. Signals: "the most important thing", explicit ranking, final choices, repetition, how much they explained, strong emphasis, and direct answers. Never just the first three. A clearly important fourth is kept aside as *one more idea worth keeping*.
+- **Exactly three:** keep them, and clarify without reinterpreting.
+- **Two or one:** show only those. *We found 2 clear things* and **Ask for one more** reopens listening for a follow-up. Nothing is ever generated to fill a slot.
+- **Corrections:** "Porta… actually no, forget that. Razza is much better" gives Razza, and the rejected choice disappears. "Hiring fast… actually, no, hiring carefully" gives *hire carefully*.
+- **The asker's follow-ups** ("Why?") are context, never things.
+- **Unclear details** ("that place near the station, I can't remember the name") stay as vague as they were said, with a suggested follow-up question to ask them. **Clarify** records their answer and updates just that thing.
+- **Ranking:** if they ranked, that order is kept. Otherwise, what they called most important comes first.
+- **Useful context is preserved** (when to go, what to order, why), as one to three short sentences, and only if they said it.
+- **Their voice is preserved.** Casual stays a little casual, direct stays direct, a life lesson stays human. "Don't wait forever to call your parents" never becomes "Prioritize familial communication".
+- **Quotes are rare and exact.** A short quote appears only when they said something memorable, and only if those exact words are in the transcript.
+
 ## The most important rule: the speaker is the source
 
 The AI is an editor sitting quietly in the background. It may organize, condense, clarify and fix grammar. It may never add advice, look things up, invent details, pad to three or change someone's opinion. Several layers enforce this:
 
 1. **The editor's brief:** [`server/prompt.ts`](server/prompt.ts) spells out what the model may and may not do, how to pick three when someone offers five, where to land when they change their mind, and to return *fewer* than three rather than invent one. Everything in the transcript is treated as material, never as instructions.
 2. **Structured output with evidence:** [`server/distill.ts`](server/distill.ts) asks Claude for each thing plus a **verbatim quote** from the transcript that supports it.
-3. **Grounding check:** [`src/lib/distill/grounding.ts`](src/lib/distill/grounding.ts) drops any thing whose quote can't be found in what was actually said, removes duplicates and caps the list at three. It only removes; it never adds or replaces.
-4. **Honest gaps:** if someone shares two things, the review shows two plus an empty third position: *"Marcus shared two things. We didn't fill the third."* If nothing usable was heard, the app says so and offers *Ask again* or *Write their things down yourself*. It never shows a plausible-sounding guess.
-5. **In their words:** every saved thing keeps its supporting quote, and the saved page can show them, so anyone can check the summary against the speaker's own words.
+3. **Grounding check:** [`src/lib/distill/grounding.ts`](src/lib/distill/grounding.ts) runs on everything the editor returns, including follow-ups. It only removes; it never adds or replaces.
+   - A thing is dropped if its evidence can't be found in what was said.
+   - A headline is dropped if it names a person, place or number nobody said (so a restaurant name the speaker couldn't remember can't be supplied), and any context sentence that does so is removed.
+   - Quotes must match the transcript word for word.
+   - Duplicates are removed and the list is capped at three.
+4. **Honest gaps:** if someone shares two things, the review shows two and an empty 03: *"Only two clear things came up. We didn't fill the third."* If nothing usable was heard, the app says so and offers *Ask again* or *Write their things down yourself*. It never shows a plausible-sounding guess.
+5. **Honest uncertainty:** in words, never percentages. *We weren't completely sure about this one.* appears only where something was actually unclear.
+6. **Evidence stays attached:** every saved thing keeps the span of the conversation it came from, and the original recording (plus any follow-ups) is a tap away for verification.
 
-These rules are covered by tests in [`tests/`](tests), including a check that every sample thing comes from its transcript.
+These rules are covered by tests in [`tests/`](tests). They include a check that every sample thing, quote, fourth idea and follow-up passes grounding completely unchanged.
 
 ## Running it
 
@@ -54,8 +76,11 @@ npm run build        # typecheck + production build
 
 ### Preview mode vs. live mode
 
-- **Preview mode** (the default, with no key): everything works end to end. After you record, the three things come from the closest *sample conversation*, and the review screen clearly labels it a **Preview answer**. With no microphone available, *Preview without the microphone* runs the listening screen with a simulated voice.
-- **Live mode**: create `.env.local` with `ANTHROPIC_API_KEY=...` and restart `npm run dev`. The browser transcribes the answer quietly in the background (Web Speech API), then `POST /api/distill` sends the question and transcript to Claude (`claude-opus-5`, adaptive thinking, `effort: medium` by default so the wait is a few seconds; set `DISTILL_EFFORT` to change it). Requests opt into server-side refusal fallbacks (`fallbacks: "default"`).
+- **Preview mode** (the default, with no key): everything works end to end. After you record, the three things come from the closest *sample conversation*, and the review screen clearly labels it a **Preview answer**. With no microphone available, *Preview without the microphone* runs the listening screen with a simulated voice. The Ask screen's examples each demonstrate one messy case:
+  - *first-time founder*: a correction, "the most important thing", a memorable quote, and a fourth idea
+  - *Jersey City*: a change of mind, plus a name they couldn't remember, which **Clarify** resolves
+  - *life has taught you*: only two things, and **Ask for one more** adds the third
+- **Live mode**: create `.env.local` with `ANTHROPIC_API_KEY=...` and restart `npm run dev`. The browser transcribes the conversation quietly in the background (Web Speech API), then `POST /api/distill` sends the question and transcript to Claude (`claude-opus-5`, adaptive thinking, structured output). Effort is `high` by default, because getting someone's meaning right is worth a few seconds; set `DISTILL_EFFORT` to change it. Follow-ups (*Ask for one more*, *Clarify*) use the same endpoint with the conversation so far. Requests opt into server-side refusal fallbacks (`fallbacks: "default"`).
 
 A real recording is never answered with sample content. In live mode, if the transcript is empty, you get the *We couldn't make out their answer* screen.
 

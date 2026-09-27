@@ -5,10 +5,22 @@ import type { Capture } from "./types";
  *
  * These make the app feel alive on first open, and power preview mode when no
  * transcription service is connected. Each transcript is written the way people
- * actually talk — tangents, restarts, a fourth idea they drop — and every
- * thing's `quote` is copied verbatim from it. The things are what a careful
- * editor would write down: nothing added, nothing the speaker didn't say.
+ * actually talk: tangents, restarts, corrections, a fourth idea, a name they
+ * can't remember, the asker chiming in. Every thing's `quote` (and any `said`)
+ * is copied verbatim from it. The things are what a careful editor would write
+ * down: nothing added, nothing the speaker didn't say.
  */
+
+export interface SampleThing {
+  headline: string;
+  detail: string;
+  /** Verbatim evidence from the transcript. */
+  quote: string;
+  /** A memorable phrase, verbatim. Rare. */
+  said?: string;
+  /** The follow-up question, when the speaker left something unclear. */
+  unclear?: string;
+}
 
 export interface SampleConversation {
   key: string;
@@ -19,7 +31,14 @@ export interface SampleConversation {
   keywords: string[];
   transcript: string;
   durationSec: number;
-  things: { headline: string; detail: string; quote: string }[];
+  things: SampleThing[];
+  /** A fourth idea the speaker also clearly cared about. */
+  extra?: SampleThing;
+  /** What the speaker says when the asker goes back to them (preview mode). */
+  followUps?: {
+    more?: { transcript: string; things: SampleThing[] };
+    clarify?: { index: number; transcript: string; thing: SampleThing };
+  };
   /** When present, this conversation appears in the library as a saved 3 Things. */
   seed?: { daysAgo: number; time: string };
 }
@@ -245,31 +264,118 @@ export const sampleConversations: SampleConversation[] = [
     ],
   },
   {
+    // The spec's founder conversation: a correction mid-thought, the asker chiming in,
+    // four ideas, one of them named "the most important thing", and one memorable line.
+    key: "founder-know",
+    person: "",
+    question: "What are three things every first-time founder should know?",
+    topic: "Startup",
+    keywords: ["founder", "founders", "startup"],
+    durationSec: 142,
+    transcript:
+      "Okay. So the first thing, and I learned this one the hard way. My first lesson was hiring fast. Actually, no. Hiring carefully. I hired way too quickly that first year, and fixing those hires took longer than making them. So hire more slowly than you think you need to. Why slower, though? Because every early hire kind of sets the culture, and you can't really undo that. Second, cash flow. Everyone watches revenue, but revenue is vanity if the cash isn't there. We had our best revenue month and almost missed payroll. Oh, and pricing. Don't underprice. Everybody charges too little at the start. But honestly, the most important thing, the thing I'd tell anyone, is talk to customers before you build anything. We spent months building something nobody asked for. Talk to them first. Seriously.",
+    things: [
+      {
+        headline: "Talk to customers before you build anything",
+        detail: "If there's one thing I'd tell anyone, it's this. We spent months building something nobody asked for.",
+        quote: "the most important thing, the thing I'd tell anyone, is talk to customers before you build anything",
+      },
+      {
+        headline: "Hire more slowly than you think you need to",
+        detail:
+          "I hired way too quickly that first year, and fixing those hires took longer than making them. Every early hire sets the culture, and you can't really undo that.",
+        quote: "So hire more slowly than you think you need to.",
+      },
+      {
+        headline: "Watch cash flow, not just revenue",
+        detail: "We had our best revenue month and almost missed payroll.",
+        quote: "Everyone watches revenue, but revenue is vanity if the cash isn't there.",
+        said: "Revenue is vanity if the cash isn't there.",
+      },
+    ],
+    extra: {
+      headline: "Don't underprice",
+      detail: "Everybody charges too little at the start.",
+      quote: "Don't underprice. Everybody charges too little at the start.",
+    },
+  },
+  {
+    // A change of mind ("forget that") and a place whose name they can't remember.
+    key: "jersey-places",
+    person: "",
+    question: "What are three places I shouldn’t miss in Jersey City?",
+    topic: "Travel",
+    keywords: ["jersey", "places", "shouldn't", "shouldn’t"],
+    durationSec: 97,
+    transcript:
+      "Okay, Jersey City. First, walk the waterfront, but definitely around sunset. During the afternoon it's fine, but around sunset you get the Manhattan skyline and the light is beautiful. For food, I'd say the pizza place on Grove... actually, no, forget that. Razza is much better. Razza. Get the margherita, and go early, because there's always a line. And then there's that coffee place near the station... I can't remember the name... but it's really good. Oh, and Liberty State Park is nice too, I guess, if you have time.",
+    things: [
+      {
+        headline: "Walk the waterfront around sunset",
+        detail: "It's fine in the afternoon, but around sunset you get the Manhattan skyline and the light is beautiful.",
+        quote: "walk the waterfront, but definitely around sunset",
+      },
+      {
+        headline: "Go to Razza for pizza",
+        detail: "Get the margherita, and go early, because there's always a line.",
+        quote: "Razza is much better. Razza. Get the margherita, and go early",
+      },
+      {
+        headline: "Try the coffee place near the station",
+        detail: "The name didn't come to mind, but it's really good.",
+        quote: "that coffee place near the station... I can't remember the name... but it's really good",
+        unclear: "Which coffee place near the station did you mean?",
+      },
+    ],
+    followUps: {
+      clarify: {
+        index: 2,
+        transcript:
+          "Oh, the coffee place! It's right by the Grove Street PATH, the one with the green door. It's actually called The Green Door, I just remembered. Get the cardamom latte.",
+        thing: {
+          headline: "Try The Green Door, by the Grove Street PATH",
+          detail: "It's the coffee place right by the station. Get the cardamom latte.",
+          quote: "It's actually called The Green Door",
+        },
+      },
+    },
+  },
+  {
+    // Only two clear things. The app never invents a third.
     key: "life-taught",
     person: "",
     question: "What are three things life has taught you?",
     topic: "Life",
     keywords: ["life", "taught", "lessons", "lesson", "wisdom", "learned"],
-    durationSec: 88,
+    durationSec: 64,
     transcript:
-      "Life. Well, that's a big one. Okay. First, most of the things you worry about never happen. I spent years worrying about things that just didn't come. Second, people remember how you made them feel. Not what you said, not exactly what you did. How you made them feel. And three, um, walk every day. That sounds small. It's not small. Half my good decisions happened on walks.",
+      "Life. Hmm. Honestly, the biggest thing I learned is don't wait forever to call your parents. You always think there'll be more time. And people remember how you made them feel. Not what you said, not exactly what you did. How you made them feel. What else... I don't know. I'd have to think about that one.",
     things: [
       {
-        headline: "Most worries never happen",
-        detail: "I spent years worrying about things that just didn't come.",
-        quote: "I spent years worrying about things that just didn't come.",
+        headline: "Don't keep putting off calling your parents",
+        detail: "You always think there'll be more time.",
+        quote: "don't wait forever to call your parents. You always think there'll be more time.",
       },
       {
         headline: "People remember how you made them feel",
         detail: "Not what you said, and not exactly what you did.",
         quote: "people remember how you made them feel",
       },
-      {
-        headline: "Walk every day",
-        detail: "It sounds small, but it isn't. Half my good decisions happened on walks.",
-        quote: "Half my good decisions happened on walks.",
-      },
     ],
+    followUps: {
+      more: {
+        transcript:
+          "One more? Okay. Walk every day. It sounds small. It's not small. Half my good decisions happened on walks.",
+        things: [
+          {
+            headline: "Walk every day",
+            detail: "It sounds small, but it isn't.",
+            quote: "Walk every day. It sounds small. It's not small.",
+            said: "Half my good decisions happened on walks.",
+          },
+        ],
+      },
+    },
   },
   {
     key: "wish-knew-earlier",

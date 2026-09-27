@@ -57,12 +57,17 @@ export function newId(): string {
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** "3 Things from Alex", "Two things from Marcus", "Their 3 Things" */
-export function fromLine(count: number, person: string): string {
+/** "From Jason", or "From this conversation" when nobody was named. The source is always visible. */
+export function sourceLine(person: string): string {
   const who = person.trim();
-  const things = count >= 3 ? "3 Things" : count === 2 ? "two things" : "one thing";
-  if (!who) return `Their ${things}`;
-  return `${things.charAt(0).toUpperCase()}${things.slice(1)} from ${who}`;
+  return who ? `From ${who}` : "From this conversation";
+}
+
+/** "3 Things from Alex", "Two things from Marcus", "3 Things from this conversation" */
+export function fromLine(count: number, person: string): string {
+  const who = person.trim() || "this conversation";
+  const things = count >= 3 ? "3 Things" : count === 2 ? "Two things" : "One thing";
+  return `${things} from ${who}`;
 }
 
 /** "01:42", or "1:02:05" past an hour. For the listening screen's quiet timer. */

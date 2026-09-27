@@ -38,6 +38,8 @@
   margin: 0 calc(var(--gutter) * -1);
   padding: 28px var(--gutter) calc(20px + var(--safe-bottom));
   background: linear-gradient(to bottom, rgba(248, 244, 236, 0), var(--paper) 28px);
+  /* Paper continues past the edge, so scrolled content never peeks out underneath. */
+  box-shadow: 0 32px 0 0 var(--paper);
   display: flex;
   flex-direction: column;
   gap: 10px;

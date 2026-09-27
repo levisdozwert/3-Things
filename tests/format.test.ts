@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarDate, clock, count, fromLine, relativeDay, tidyQuestion, timer } from "../src/lib/format";
+import { calendarDate, clock, count, fromLine, relativeDay, sourceLine, tidyQuestion, timer } from "../src/lib/format";
 
 describe("format", () => {
   const now = new Date("2026-09-27T15:00:00");
@@ -14,7 +14,9 @@ describe("format", () => {
   it("names whose things they are", () => {
     expect(fromLine(3, "Alex")).toBe("3 Things from Alex");
     expect(fromLine(2, "Marcus")).toBe("Two things from Marcus");
-    expect(fromLine(3, "")).toBe("Their 3 Things");
+    expect(fromLine(3, "")).toBe("3 Things from this conversation");
+    expect(sourceLine("")).toBe("From this conversation");
+    expect(sourceLine("Mom")).toBe("From Mom");
   });
 
   it("tidies spoken questions", () => {

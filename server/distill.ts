@@ -1,18 +1,21 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import type { DistillRequest, DistillResponse } from "../src/lib/distill/contract";
+import type { DistillRequest, DistillResponse, DistilledThing } from "../src/lib/distill/contract";
 import { groundResponse } from "../src/lib/distill/grounding";
 import { EDITOR_PROMPT, editorMessage } from "./prompt";
 
+const ThingSchema = z.object({
+  headline: z.string(),
+  context: z.string(),
+  evidence: z.string(),
+  memorable_quote: z.string().nullable(),
+  needs_clarification: z.string().nullable(),
+});
+
 const DistillSchema = z.object({
-  things: z.array(
-    z.object({
-      headline: z.string(),
-      detail: z.string(),
-      quote: z.string(),
-    }),
-  ),
+  things: z.array(ThingSchema),
+  one_more: ThingSchema.nullable(),
   topic: z.string(),
   answered: z.boolean(),
 });
@@ -21,16 +24,29 @@ type Effort = "low" | "medium" | "high";
 
 export interface DistillOptions {
   apiKey?: string;
-  /** Kept at medium by default so the processing screen takes seconds, not minutes. */
+  /** High by default: getting someone's meaning right matters more than a few seconds. */
   effort?: Effort;
 }
 
 export class RefusedError extends Error {}
 
+function toThing(t: z.infer<typeof ThingSchema>): DistilledThing {
+  return {
+    headline: t.headline,
+    detail: t.context,
+    quote: t.evidence,
+    ...(t.memorable_quote ? { said: t.memorable_quote } : {}),
+    ...(t.needs_clarification ? { unclear: t.needs_clarification } : {}),
+  };
+}
+
 /**
- * Turns a spoken answer into up to three things, using only what the speaker said.
- * The model's output is grounded against the transcript before it is returned:
- * anything whose supporting words can't be found is dropped, never replaced.
+ * Turns a conversation into up to three things, using only what the speaker said.
+ * For a follow-up, returns only the new things, or the one clarified thing.
+ *
+ * The model's output is grounded before it is returned: anything whose words
+ * can't be found in the conversation, or that names something nobody said, is
+ * dropped or trimmed, never replaced.
  */
 export async function distill(req: DistillRequest, options: DistillOptions = {}): Promise<DistillResponse> {
   const client = new Anthropic(options.apiKey ? { apiKey: options.apiKey } : {});
@@ -43,16 +59,29 @@ export async function distill(req: DistillRequest, options: DistillOptions = {})
     fallbacks: "default",
     thinking: { type: "adaptive" },
     output_config: {
-      effort: options.effort ?? "medium",
+      effort: options.effort ?? "high",
       format: betaZodOutputFormat(DistillSchema),
     },
     system: EDITOR_PROMPT,
-    messages: [{ role: "user", content: editorMessage(req.question, req.transcript, req.person) }],
+    messages: [{ role: "user", content: editorMessage(req.question, req.transcript, req.person, req.followUp) }],
   });
 
   if (response.stop_reason === "refusal") throw new RefusedError("The request was declined.");
   const parsed = response.parsed_output;
   if (!parsed) throw new Error(`No structured output (stop_reason: ${response.stop_reason})`);
 
-  return groundResponse(parsed, req.transcript);
+  const followUp = req.followUp;
+  return groundResponse(
+    {
+      things: parsed.things.map(toThing),
+      ...(parsed.one_more && !followUp ? { extra: toThing(parsed.one_more) } : {}),
+      topic: parsed.topic,
+      answered: parsed.answered,
+    },
+    {
+      transcript: followUp ? `${req.transcript} ${followUp.transcript}` : req.transcript,
+      question: followUp ? `${req.question} ${followUp.asked}` : req.question,
+      person: req.person,
+    },
+  );
 }

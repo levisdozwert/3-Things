@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
       react(),
       threeThingsApi({
         apiKey: env.ANTHROPIC_API_KEY || undefined,
-        effort: effort === "low" || effort === "high" ? effort : "medium",
+        effort: effort === "low" || effort === "medium" ? effort : "high",
       }),
     ],
     server: { host: true },

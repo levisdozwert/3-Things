@@ -62,6 +62,16 @@
   color: var(--ink-3);
 }
 
+.followUp {
+  margin-top: 14px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.followUp + .question {
+  margin-top: 4px;
+}
+
 .question {
   margin: 12px auto 0;
   max-width: 17em;

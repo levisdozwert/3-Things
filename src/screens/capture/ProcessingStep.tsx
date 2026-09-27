@@ -14,6 +14,8 @@ interface ProcessingStepProps {
   question: string;
   /** How long the conversation was, once the recording has closed. */
   durationSec: number | null;
+  /** "Finding the three things", or for a follow-up, what's being done with it. */
+  title?: string;
   onCancel: () => void;
 }
 
@@ -21,7 +23,12 @@ interface ProcessingStepProps {
  * First a confident acknowledgement, "Got it.", with the three forms settling
  * back into the mark. Then, calmly, "Finding the three things".
  */
-export function ProcessingStep({ question, durationSec, onCancel }: ProcessingStepProps) {
+export function ProcessingStep({
+  question,
+  durationSec,
+  title = "Finding the three things",
+  onCancel,
+}: ProcessingStepProps) {
   const [phase, setPhase] = useState<"got" | "finding">("got");
   const [stage, setStage] = useState(0);
 
@@ -49,10 +56,11 @@ export function ProcessingStep({ question, durationSec, onCancel }: ProcessingSt
           </p>
           <p className={`${flow.question} ${styles.gotQuestion}`}>{question}</p>
           <div className={styles.gotStage}>
+            {/* Each form becomes one of the three positions, then one of the three things. */}
             <span className={styles.forms} aria-hidden="true">
-              <span />
-              <span />
-              <span />
+              {[1, 2, 3].map((n) => (
+                <span key={n} style={{ viewTransitionName: `position-${n}` } as CSSProperties} />
+              ))}
             </span>
             <h1 className={`serif ${styles.gotIt}`}>Got it.</h1>
           </div>
@@ -71,7 +79,7 @@ export function ProcessingStep({ question, durationSec, onCancel }: ProcessingSt
         <p className={`${flow.question} ${flow.questionSM}`}>{question}</p>
 
         <div className={styles.heading}>
-          <h1 className={`serif ${styles.title}`}>Finding the three things</h1>
+          <h1 className={`serif ${styles.title}`}>{title}</h1>
           <p className={styles.stages} aria-live="polite">
             <span key={stage} className={styles.stage}>
               {STAGES[stage]}
@@ -83,11 +91,9 @@ export function ProcessingStep({ question, durationSec, onCancel }: ProcessingSt
           {[0, 1, 2].map((i) => (
             <li key={i} className={styles.position} style={{ "--i": i } as CSSProperties}>
               <span
-                className={`serif tabular ${styles.number}`}
+                className={styles.marker}
                 style={{ viewTransitionName: `position-${i + 1}` } as CSSProperties}
-              >
-                {i + 1}
-              </span>
+              />
               <span className={styles.lines}>
                 <span className={styles.line} style={{ width: ["74%", "88%", "62%"][i] }} />
                 <span className={`${styles.line} ${styles.lineSoft}`} style={{ width: ["92%", "70%", "84%"][i] }} />

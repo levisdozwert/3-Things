@@ -6,11 +6,12 @@ import type { Draft } from "../../components/ThingsEditor";
 import { saveRecording } from "../../lib/audio/audioStore";
 import { useRecorder } from "../../lib/audio/useRecorder";
 import { useSpeechRecognition } from "../../lib/audio/useSpeechRecognition";
-import { detectMode, findThreeThings, NothingHeardError } from "../../lib/distill/client";
+import { detectMode, findThreeThings, followUpThings, NothingHeardError } from "../../lib/distill/client";
+import type { DistilledThing } from "../../lib/distill/contract";
 import { newId, tidyQuestion } from "../../lib/format";
 import { useStore } from "../../lib/store";
 import { withTransition, type Direction } from "../../lib/transition";
-import type { Capture, Recording } from "../../lib/types";
+import type { Capture, Recording, Thing } from "../../lib/types";
 import { AskStep } from "./AskStep";
 import { EditStep } from "./EditStep";
 import flow from "./Flow.module.css";
@@ -24,13 +25,25 @@ import { WhoStep } from "./WhoStep";
 
 type Step = "ask" | "who" | "ready" | "listening" | "processing" | "review" | "edit" | "saved" | "problem";
 
+/** Going back to the speaker from the review screen. */
+type Asking = { kind: "more"; want: number; asked: string } | { kind: "clarify"; index: number; asked: string };
+
+const asDistilled = ({ headline, detail, quote, said, unclear }: Thing): DistilledThing => ({
+  headline,
+  detail,
+  quote: quote ?? "",
+  ...(said ? { said } : {}),
+  ...(unclear ? { unclear } : {}),
+});
+
 /** Long enough for "Got it." and "Finding the three things" to read as care, not delay. */
 const MIN_PROCESSING_MS = 4800;
+const MIN_FOLLOW_UP_MS = 3400;
 /** A safety net for a phone left recording, not a limit on conversation. */
 const MAX_RECORDING_SEC = 30 * 60;
 
 /**
- * Ask → Who → Ready → Listen → Understand → 3 Things → Save.
+ * Ask → Who → Ready → Listen → Understand → Verify → Save.
  * One screen at a time, with the question carried through every step.
  */
 export function CaptureFlow() {
@@ -55,9 +68,17 @@ export function CaptureFlow() {
   const [canPreview, setCanPreview] = useState(false);
   const [stoppedAt, setStoppedAt] = useState<number | null>(null);
 
-  const [recording, setRecording] = useState<Recording | null>(null);
+  /** The conversation, then any follow-ups, in order. */
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [extra, setExtra] = useState<Thing | null>(null);
+  const [asking, setAsking] = useState<Asking | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [fresh, setFresh] = useState<string[]>([]);
+  const [editFocus, setEditFocus] = useState<number | null>(null);
+  const [edited, setEdited] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [sample, setSample] = useState<string | undefined>();
   const [manual, setManual] = useState(false);
   const [problem, setProblem] = useState<Problem>("failed");
   const [saving, setSaving] = useState(false);
@@ -99,18 +120,20 @@ export function CaptureFlow() {
     }
   };
 
-  const startListening = () => {
-    // Called straight from the tap so the browser treats the microphone request as user-initiated.
-    void beginRecording();
-    go("listening");
-  };
-
   const previewWithoutMic = () => {
     stopping.current = false;
     setListenProblem(null);
     setSimulated(true);
     setSimPaused(false);
     setSimElapsed(0);
+  };
+
+  const startListening = () => {
+    // A conversation previewed without a microphone keeps going that way for its follow-ups.
+    if (recordings[0]?.simulated) previewWithoutMic();
+    // Called straight from the tap so the browser treats the microphone request as user-initiated.
+    else void beginRecording();
+    go("listening");
   };
 
   useEffect(() => {
@@ -141,28 +164,37 @@ export function CaptureFlow() {
     answer.resume();
   };
 
+  const settleAfter = (started: number, minimum: number) =>
+    new Promise((r) => setTimeout(r, Math.max(0, minimum - (performance.now() - started))));
+
+  // ── Understanding ─────────────────────────────────────────
+
   const findThings = useCallback(
     async (rec: Recording, heardFrom: string) => {
       const run = ++generation.current;
       const started = performance.now();
-      const settle = () => new Promise((r) => setTimeout(r, Math.max(0, MIN_PROCESSING_MS - (performance.now() - started))));
       try {
-        const { response, mode } = await findThreeThings(
+        const result = await findThreeThings(
           { question, transcript: rec.transcript, person: heardFrom },
           { preview: rec.simulated },
         );
-        await settle();
+        await settleAfter(started, MIN_PROCESSING_MS);
         if (run !== generation.current) return;
-        setPreview(mode === "preview");
+        setPreview(result.mode === "preview");
+        setSample(result.sample);
         setManual(false);
+        setEdited(false);
+        setNote(null);
+        setFresh([]);
         setDraft({
           person: heardFrom,
-          topic: response.topic,
-          things: response.things.map((t) => ({ id: newId(), ...t })),
+          topic: result.response.topic,
+          things: result.response.things.map((t) => ({ id: newId(), ...t })),
         });
+        setExtra(result.response.extra ? { id: newId(), ...result.response.extra } : null);
         go("review");
       } catch (error) {
-        await settle();
+        await settleAfter(started, MIN_PROCESSING_MS);
         if (run !== generation.current) return;
         setProblem(error instanceof NothingHeardError ? "nothing-heard" : "failed");
         go("problem");
@@ -170,6 +202,58 @@ export function CaptureFlow() {
     },
     [question, go],
   );
+
+  /** What the speaker said when the asker went back to them: more things, or a clearer one. */
+  const understandFollowUp = async (rec: Recording, ask: Asking, current: Draft, earlier: Recording[]) => {
+    const run = ++generation.current;
+    const started = performance.now();
+    const conversation = earlier.map((r) => r.transcript).join(" ");
+    try {
+      const things = await followUpThings(
+        {
+          question,
+          transcript: conversation,
+          person: current.person,
+          followUp:
+            ask.kind === "more"
+              ? { kind: "more", asked: ask.asked, transcript: rec.transcript, keep: current.things.map(asDistilled), want: ask.want }
+              : { kind: "clarify", asked: ask.asked, transcript: rec.transcript, thing: asDistilled(current.things[ask.index]) },
+        },
+        { preview: preview || rec.simulated, sample },
+      );
+      await settleAfter(started, MIN_FOLLOW_UP_MS);
+      if (run !== generation.current) return;
+
+      if (ask.kind === "more") {
+        if (things.length === 0) {
+          setNote("Nothing new came up in that follow-up");
+          setFresh([]);
+        } else {
+          const added = things.map((t) => ({ id: newId(), ...t }));
+          setDraft({ ...current, things: [...current.things, ...added] });
+          setFresh(added.map((t) => t.id));
+          setNote(null);
+        }
+      } else {
+        const clarified = things[0];
+        const id = current.things[ask.index].id;
+        if (!clarified) {
+          setNote("That follow-up didn’t clear it up. You can edit it or keep it as-is");
+          setFresh([]);
+        } else {
+          setDraft({ ...current, things: current.things.map((t, i) => (i === ask.index ? { ...clarified, id } : t)) });
+          setFresh([id]);
+          setNote(clarified.unclear ? "It’s still not completely clear" : null);
+        }
+      }
+    } catch {
+      await settleAfter(started, MIN_FOLLOW_UP_MS);
+      if (run !== generation.current) return;
+      setNote("Something interrupted that follow-up. Nothing changed");
+    }
+    setAsking(null);
+    go("review", "none");
+  };
 
   const stopListening = useCallback(async () => {
     if (stopping.current) return;
@@ -185,9 +269,14 @@ export function CaptureFlow() {
       const [stopped, transcript] = await Promise.all([recorder.stop(), answer.stop()]);
       rec = { audio: stopped.blob, durationSec: stopped.durationSec, transcript, simulated: false };
     }
-    setRecording(rec);
-    void findThings(rec, person);
-  }, [go, simulated, simElapsed, recorder, answer, findThings, person]);
+    if (asking && draft) {
+      setRecordings([...recordings, rec]);
+      void understandFollowUp(rec, asking, draft, recordings);
+    } else {
+      setRecordings([rec]);
+      void findThings(rec, person);
+    }
+  }, [go, simulated, simElapsed, recorder, answer, findThings, person, asking, draft, recordings, understandFollowUp]);
 
   useEffect(() => {
     if (step === "listening" && recorder.elapsed >= MAX_RECORDING_SEC) void stopListening();
@@ -198,18 +287,58 @@ export function CaptureFlow() {
     recorder.discard();
     answer.abort();
     setConfirm(null);
+    // Leaving a follow-up keeps the three things already found.
+    if (asking && draft) {
+      setAsking(null);
+      go("review", "back");
+      return;
+    }
     leave();
+  };
+
+  // ── Going back to the speaker ───────────────────────────────
+
+  const askForMore = () => {
+    if (!draft) return;
+    const want = 3 - draft.things.length;
+    setAsking({ kind: "more", want, asked: want === 1 ? "Is there one more thing you’d add?" : "Are there two more things you’d add?" });
+    setNote(null);
+    startListening();
+  };
+
+  const clarify = (index: number) => {
+    const thing = draft?.things[index];
+    if (!thing?.unclear) return;
+    setAsking({ kind: "clarify", index, asked: thing.unclear });
+    setNote(null);
+    startListening();
+  };
+
+  const keepAsIs = (index: number) => {
+    if (!draft) return;
+    setDraft({ ...draft, things: draft.things.map((t, i) => (i === index ? { ...t, unclear: undefined } : t)) });
+  };
+
+  const swapExtra = (index: number) => {
+    if (!draft || !extra) return;
+    const replaced = draft.things[index];
+    const incoming = { ...extra, id: newId() };
+    setDraft({ ...draft, things: draft.things.map((t, i) => (i === index ? incoming : t)) });
+    setExtra(replaced);
+    setFresh([incoming.id]);
   };
 
   // ── Saving ─────────────────────────────────────────────────
 
-  const save = async (value: Draft, edited: boolean) => {
+  const save = async (value: Draft) => {
     setSaving(true);
     const id = newId();
     const things = value.things
       .filter((t) => t.headline.trim())
-      .map((t) => ({ ...t, headline: t.headline.trim(), detail: t.detail.trim() }));
-    const hasAudio = settings.keepRecordings && recording?.audio ? await saveRecording(id, recording.audio) : false;
+      // Saving is the asker's "looks right": anything left unclear was accepted as-is.
+      .map((t) => ({ ...t, headline: t.headline.trim(), detail: t.detail.trim(), unclear: undefined }));
+    const audio = recordings.flatMap((r) => (r.audio ? [r.audio] : []));
+    const hasAudio = settings.keepRecordings && audio.length > 0 ? await saveRecording(id, audio) : false;
     const capture: Capture = {
       id,
       question,
@@ -217,7 +346,7 @@ export function CaptureFlow() {
       topic: value.topic || "Life",
       things,
       recordedAt: new Date().toISOString(),
-      durationSec: Math.round(recording?.durationSec ?? 0),
+      durationSec: Math.round(recordings.reduce((sum, r) => sum + r.durationSec, 0)),
       hasAudio,
       origin: manual ? "manual" : "recording",
       ...(edited && !manual ? { edited: true } : {}),
@@ -229,28 +358,39 @@ export function CaptureFlow() {
     go("saved");
   };
 
+  const finishEditing = (value: Draft) => {
+    const before = new Map(draft?.things.map((t) => [t.id, t]));
+    // Something the asker rewrote is no longer "unclear": they've decided what it says.
+    const things = value.things.map((t) => {
+      const was = before.get(t.id);
+      const changed = !was || was.headline !== t.headline || was.detail !== t.detail;
+      return changed ? { ...t, unclear: undefined } : t;
+    });
+    const next = { ...value, things };
+    if (manual) {
+      setDraft(next);
+      void save(next);
+      return;
+    }
+    setDraft(next);
+    setEdited(true);
+    setFresh([]);
+    setNote(null);
+    go("review", "back");
+  };
+
   const writeYourself = () => {
     setManual(true);
     setPreview(false);
+    setExtra(null);
+    setEditFocus(0);
     setDraft({ person, topic: "", things: [{ id: newId(), headline: "", detail: "" }] });
     go("edit");
   };
 
-  const startOver = () => {
-    generation.current++;
-    setQuestion("");
-    setPerson("");
-    setRecording(null);
-    setDraft(null);
-    setSaved(null);
-    setManual(false);
-    setPreview(false);
-    setSimulated(false);
-    setAskMode("voice");
-    go("ask");
-  };
-
   // ── Render ─────────────────────────────────────────────────
+
+  const followUpLabel = asking?.kind === "more" ? `Asking for ${asking.want === 1 ? "one more" : "two more"}` : "A quick follow-up";
 
   return (
     <main className={flow.flow} data-step={step}>
@@ -296,8 +436,9 @@ export function CaptureFlow() {
 
       {step === "listening" && (
         <ListeningStep
-          question={question}
-          person={person}
+          question={asking ? asking.asked : question}
+          followUpLabel={asking ? followUpLabel : undefined}
+          person={draft?.person ?? person}
           elapsed={simulated ? simElapsed : recorder.elapsed}
           analyserRef={recorder.analyserRef}
           simulated={simulated}
@@ -308,7 +449,14 @@ export function CaptureFlow() {
           onStop={() => void stopListening()}
           onPause={pauseListening}
           onResume={resumeListening}
-          onCancel={() => (listenProblem ? leave() : setConfirm("recording"))}
+          onCancel={() => {
+            if (!listenProblem) return setConfirm("recording");
+            if (asking) {
+              setAsking(null);
+              return go("review", "back");
+            }
+            leave();
+          }}
           onRetry={() => void beginRecording()}
           onPreviewWithoutMic={previewWithoutMic}
         />
@@ -316,8 +464,9 @@ export function CaptureFlow() {
 
       {step === "processing" && (
         <ProcessingStep
-          question={question}
-          durationSec={stoppedAt ?? recording?.durationSec ?? null}
+          question={asking ? asking.asked : question}
+          durationSec={stoppedAt ?? recordings[0]?.durationSec ?? null}
+          title={asking ? (asking.kind === "more" ? "Finding what they added" : "Making it clear") : undefined}
           onCancel={() => setConfirm("recording")}
         />
       )}
@@ -326,12 +475,22 @@ export function CaptureFlow() {
         <ReviewStep
           question={question}
           draft={draft}
+          extra={extra}
           onPersonChange={(name) => setDraft({ ...draft, person: name })}
-          recording={recording}
+          recordings={recordings}
           preview={preview}
           saving={saving}
-          onLooksRight={() => void save(draft, false)}
-          onEdit={() => go("edit")}
+          note={note}
+          fresh={fresh}
+          onLooksRight={() => void save(draft)}
+          onEdit={(index) => {
+            setEditFocus(index ?? null);
+            go("edit");
+          }}
+          onClarify={clarify}
+          onKeepAsIs={keepAsIs}
+          onAskMore={askForMore}
+          onSwapExtra={swapExtra}
           onClose={() => setConfirm("result")}
         />
       )}
@@ -340,10 +499,9 @@ export function CaptureFlow() {
         <EditStep
           question={question}
           draft={draft}
-          onSave={(value) => {
-            setDraft(value);
-            void save(value, true);
-          }}
+          focusIndex={editFocus}
+          saveLabel={manual ? "Save" : "Done"}
+          onSave={finishEditing}
           onCancel={() => go(manual ? "problem" : "review", "back")}
         />
       )}
@@ -352,14 +510,14 @@ export function CaptureFlow() {
         <ProblemStep
           kind={problem}
           question={question}
-          recording={recording}
+          recording={recordings[0] ?? null}
           onRetry={() => {
-            if (!recording) return;
+            if (!recordings[0]) return;
             go("processing");
-            void findThings(recording, person);
+            void findThings(recordings[0], person);
           }}
           onRecordAgain={() => {
-            setRecording(null);
+            setRecordings([]);
             go("ready", "back");
           }}
           onWriteYourself={writeYourself}
@@ -367,16 +525,16 @@ export function CaptureFlow() {
         />
       )}
 
-      {step === "saved" && saved && <SavedStep capture={saved} onAskAnother={startOver} onDone={leave} />}
+      {step === "saved" && saved && <SavedStep capture={saved} onDone={leave} />}
 
       <Sheet
         open={confirm === "recording"}
-        title="Stop without keeping this?"
+        title={asking ? "Stop this follow-up?" : "Stop without keeping this?"}
         onClose={() => setConfirm(null)}
         actions={
           <>
             <Button variant="ink" block onClick={discardRecording}>
-              Discard recording
+              {asking ? "Stop follow-up" : "Discard recording"}
             </Button>
             <Button variant="text" block size="md" onClick={() => setConfirm(null)}>
               {step === "processing" ? "Keep going" : "Keep listening"}
@@ -384,7 +542,7 @@ export function CaptureFlow() {
           </>
         }
       >
-        Nothing from this conversation will be saved.
+        {asking ? "The three things you already have stay as they are." : "Nothing from this conversation will be saved."}
       </Sheet>
 
       <Sheet

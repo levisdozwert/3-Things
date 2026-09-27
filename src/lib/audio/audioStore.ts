@@ -1,6 +1,7 @@
 /**
- * Original recordings live on this device only, in IndexedDB, keyed by capture id.
- * They exist so the user can verify what someone said, not as the saved object.
+ * Original recordings live on this device only, in IndexedDB, keyed by capture id:
+ * the conversation, then any follow-ups. They exist so the user can verify what
+ * someone said, not as the saved object.
  */
 
 const DB_NAME = "three-things";
@@ -27,20 +28,22 @@ async function run<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => I
   });
 }
 
-export async function saveRecording(id: string, blob: Blob): Promise<boolean> {
+export async function saveRecording(id: string, clips: Blob[]): Promise<boolean> {
   try {
-    await run("readwrite", (s) => s.put(blob, id));
+    await run("readwrite", (s) => s.put(clips, id));
     return true;
   } catch {
     return false;
   }
 }
 
-export async function loadRecording(id: string): Promise<Blob | null> {
+export async function loadRecording(id: string): Promise<Blob[]> {
   try {
-    return ((await run("readonly", (s) => s.get(id))) as Blob | undefined) ?? null;
+    const stored = (await run("readonly", (s) => s.get(id))) as Blob | Blob[] | undefined;
+    if (!stored) return [];
+    return Array.isArray(stored) ? stored : [stored];
   } catch {
-    return null;
+    return [];
   }
 }
 

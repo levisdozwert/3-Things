@@ -7,12 +7,14 @@ import styles from "./EditStep.module.css";
 interface EditStepProps {
   question: string;
   draft: Draft;
+  /** Open with this thing ready to edit (e.g. from "Edit" on an unclear thing). */
+  focusIndex?: number | null;
   saveLabel?: string;
   onSave: (draft: Draft) => void;
   onCancel: () => void;
 }
 
-export function EditStep({ question, draft, saveLabel = "Save", onSave, onCancel }: EditStepProps) {
+export function EditStep({ question, draft, focusIndex = null, saveLabel = "Save", onSave, onCancel }: EditStepProps) {
   const [value, setValue] = useState<Draft>(draft);
   const usable = value.things.filter((t) => t.headline.trim());
 
@@ -31,7 +33,7 @@ export function EditStep({ question, draft, saveLabel = "Save", onSave, onCancel
           <h1 className={`${flow.question} ${flow.questionLG}`}>{question}</h1>
           <p className={styles.hint}>Keep it true to what they said.</p>
         </header>
-        <ThingsEditor value={value} onChange={setValue} />
+        <ThingsEditor value={value} onChange={setValue} focusIndex={focusIndex} />
       </div>
 
       <div className={flow.footer}>

@@ -23,6 +23,20 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+function isThing(value: unknown): boolean {
+  const t = value as { headline?: unknown; detail?: unknown };
+  return typeof t === "object" && t !== null && typeof t.headline === "string" && typeof t.detail === "string";
+}
+
+function isFollowUp(value: unknown): boolean {
+  if (value === undefined) return true;
+  const f = value as { kind?: unknown; asked?: unknown; transcript?: unknown; keep?: unknown; want?: unknown; thing?: unknown };
+  if (typeof f !== "object" || f === null || typeof f.asked !== "string" || typeof f.transcript !== "string") return false;
+  if (f.kind === "more") return Array.isArray(f.keep) && f.keep.every(isThing) && (f.want === 1 || f.want === 2);
+  if (f.kind === "clarify") return isThing(f.thing);
+  return false;
+}
+
 function isDistillRequest(value: unknown): value is DistillRequest {
   const v = value as DistillRequest;
   return (
@@ -30,7 +44,8 @@ function isDistillRequest(value: unknown): value is DistillRequest {
     v !== null &&
     typeof v.question === "string" &&
     typeof v.transcript === "string" &&
-    (v.person === undefined || typeof v.person === "string")
+    (v.person === undefined || typeof v.person === "string") &&
+    isFollowUp(v.followUp)
   );
 }
 

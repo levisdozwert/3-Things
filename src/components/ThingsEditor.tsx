@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type TextareaHTMLAttributes } from "react";
+import { useEffect, useLayoutEffect, useRef, type TextareaHTMLAttributes } from "react";
 import { newId } from "../lib/format";
 import type { Thing } from "../lib/types";
 import { Icon } from "./Icon";
@@ -26,14 +26,25 @@ function AutoTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 interface ThingsEditorProps {
   value: Draft;
   onChange: (draft: Draft) => void;
+  /** Bring this thing into view with its headline ready to edit. */
+  focusIndex?: number | null;
 }
 
 /**
  * Editing is for the person who asked: fix a word, reorder, remove something
  * that wasn't quite theirs. The speaker's original words stay attached.
  */
-export function ThingsEditor({ value, onChange }: ThingsEditorProps) {
+export function ThingsEditor({ value, onChange, focusIndex = null }: ThingsEditorProps) {
   const { things } = value;
+  const listRef = useRef<HTMLOListElement>(null);
+
+  useEffect(() => {
+    if (focusIndex === null) return;
+    const field = listRef.current?.querySelectorAll<HTMLTextAreaElement>("textarea")[focusIndex * 2];
+    field?.scrollIntoView({ block: "center" });
+    field?.focus({ preventScroll: true });
+    // Only when the editor opens.
+  }, []);
 
   const setThing = (index: number, patch: Partial<Thing>) =>
     onChange({ ...value, things: things.map((t, i) => (i === index ? { ...t, ...patch } : t)) });
@@ -84,7 +95,7 @@ export function ThingsEditor({ value, onChange }: ThingsEditorProps) {
         </div>
       </div>
 
-      <ol className={styles.things}>
+      <ol className={styles.things} ref={listRef}>
         {things.map((thing, i) => (
           <li key={thing.id} className={styles.thing}>
             <span className={`serif tabular ${styles.number}`} aria-hidden="true">
@@ -103,8 +114,8 @@ export function ThingsEditor({ value, onChange }: ThingsEditorProps) {
                 className={styles.detail}
                 value={thing.detail}
                 onChange={(e) => setThing(i, { detail: e.target.value })}
-                placeholder="Why it matters, in their words"
-                aria-label={`Explanation for thing ${i + 1}`}
+                placeholder="The context they gave (optional)"
+                aria-label={`Context for thing ${i + 1}`}
               />
               <div className={styles.controls}>
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Move thing ${i + 1} up`}>

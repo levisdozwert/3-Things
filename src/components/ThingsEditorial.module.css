@@ -1,0 +1,166 @@
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  padding: 30px 0 32px;
+}
+
+.item + .item {
+  border-top: 1px solid var(--line);
+}
+
+.item:first-child {
+  padding-top: 8px;
+}
+
+/* The numeral is the iconic part: large, light, ember. */
+.number {
+  display: block;
+  width: fit-content;
+  font-size: 2.75rem;
+  line-height: 0.9;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  color: var(--ember);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 144;
+  margin-bottom: 16px;
+}
+
+.numberEmpty {
+  color: var(--line-strong);
+}
+
+.headline {
+  font-size: 1.5625rem;
+  line-height: 1.22;
+  font-weight: 440;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 48;
+  text-wrap: pretty;
+}
+
+.context {
+  margin-top: 10px;
+  max-width: 34em;
+  font-size: 1.03rem;
+  line-height: 1.6;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.said {
+  margin: 16px 0 0;
+  padding-left: 16px;
+  border-left: 2px solid var(--ember-soft);
+}
+
+.said blockquote {
+  margin: 0;
+  font-style: italic;
+  font-size: 1.125rem;
+  line-height: 1.45;
+  font-weight: 380;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 36;
+}
+
+.said figcaption {
+  margin-top: 4px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.said figcaption::before {
+  content: "— ";
+}
+
+/* Honest, quiet, and only when needed. */
+.unclear {
+  margin-top: 18px;
+  padding: 14px 16px 10px;
+  border-radius: var(--r-md);
+  background: var(--ember-wash);
+}
+
+.unclearNote {
+  font-size: var(--text-small);
+  font-weight: 560;
+  color: var(--ink);
+}
+
+.unclearAsk {
+  margin-top: 4px;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.unclearAsk span {
+  font-size: 1rem;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "opsz" 18;
+}
+
+.unclearActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px -10px 0;
+}
+
+.unclearActions button {
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: 0.9375rem;
+  font-weight: 540;
+  color: var(--ink-2);
+  transition:
+    background-color var(--t-fast) var(--ease-soft),
+    color var(--t-fast) var(--ease-soft);
+}
+
+.unclearActions button:hover {
+  color: var(--ink);
+  background: rgba(194, 74, 38, 0.08);
+}
+
+.unclearActions .clarify {
+  color: var(--ember-ink);
+}
+
+.missing {
+  gap: 0;
+}
+
+.reveal {
+  animation: rise 620ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 170ms + 160ms);
+}
+
+/* Just added or clarified: the words arrive in ember and settle into ink. */
+.fresh .headline,
+.fresh .context {
+  animation: fresh 2.6s var(--ease-soft) 400ms both;
+}
+
+@keyframes fresh {
+  from {
+    color: var(--ember-ink);
+  }
+}
+
+@media (min-width: 720px) {
+  .number {
+    font-size: 3.25rem;
+  }
+  .headline {
+    font-size: 1.75rem;
+  }
+}

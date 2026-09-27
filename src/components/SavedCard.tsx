@@ -17,7 +17,7 @@ export function SavedCard({ capture }: { capture: Capture }) {
         <span>{fromLine(capture.things.length, capture.person)}</span>
       </div>
 
-      <ThingList things={capture.things} compact />
+      <ThingList things={capture.things} />
 
       <footer className={styles.footer}>
         <span>Recorded {calendarDate(capture.recordedAt)}</span>

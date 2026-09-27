@@ -5,8 +5,12 @@ export interface Thing {
   headline: string;
   /** The context the speaker gave. May be empty. */
   detail: string;
-  /** A short span of the speaker's actual words that this thing came from. */
+  /** The span of the speaker's words this thing is based on (evidence, not shown as a quote). */
   quote?: string;
+  /** A short, memorable phrase the speaker actually said. Shown as a quote. Rare. */
+  said?: string;
+  /** The follow-up question that would clear up something the speaker left unclear. */
+  unclear?: string;
 }
 
 /**
@@ -23,7 +27,7 @@ export interface Capture {
   things: Thing[];
   recordedAt: string;
   durationSec: number;
-  /** True when the original recording is stored on this device. */
+  /** True when the original recording (and any follow-ups) are stored on this device. */
   hasAudio: boolean;
   /** "sample" captures ship with the app so it never feels empty. */
   origin: "recording" | "manual" | "sample";

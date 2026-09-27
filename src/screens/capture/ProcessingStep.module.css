@@ -55,22 +55,28 @@
   animation-delay: calc(var(--i) * 120ms + 80ms);
 }
 
-.number {
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--ember);
-  font-variation-settings: "SOFT" 100, "opsz" 48;
-  animation: settle 2.4s var(--ease-in-out) infinite;
+/* The three forms, now standing in the three positions, taking turns to breathe. */
+.marker {
+  justify-self: start;
+  width: 8px;
+  height: 30px;
+  margin-top: 1px;
+  border-radius: 4px;
+  background: var(--ember);
+  transform-origin: center;
+  animation: settle-in 2.4s var(--ease-in-out) infinite;
   animation-delay: calc(var(--i) * 0.8s);
 }
 
-@keyframes settle {
+@keyframes settle-in {
   0%,
   100% {
     opacity: 0.35;
+    transform: scaleY(0.72);
   }
   35% {
     opacity: 1;
+    transform: none;
   }
 }
 

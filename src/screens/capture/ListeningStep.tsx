@@ -15,7 +15,10 @@ const STILL_LISTENING_SEC = 35;
 const RECEDE_AFTER_MS = 6000;
 
 interface ListeningStepProps {
+  /** The question, or for a follow-up, what to ask them now. */
   question: string;
+  /** Set when going back to the speaker: "Asking for one more", "A quick follow-up". */
+  followUpLabel?: string;
   person: string;
   elapsed: number;
   analyserRef: RefObject<AnalyserNode | null>;
@@ -44,6 +47,7 @@ export function ListeningStep(props: ListeningStepProps) {
 
 function Listening({
   question,
+  followUpLabel,
   person,
   elapsed,
   analyserRef,
@@ -121,7 +125,8 @@ function Listening({
           {status}
           {simulated && <span className={styles.preview}> · preview</span>}
         </p>
-        <p className={`${flow.question} ${styles.question}`}>{question}</p>
+        {followUpLabel && <p className={styles.followUp}>{followUpLabel}</p>}
+        <p className={`${flow.question} ${styles.question}`}>{followUpLabel ? `“${question}”` : question}</p>
 
         <div className={styles.stage}>
           <div className={styles.visual}>
