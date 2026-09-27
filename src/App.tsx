@@ -16,6 +16,8 @@ import { CaptureFlow } from "./screens/capture/CaptureFlow";
 import { DetailScreen } from "./screens/DetailScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { LibraryScreen } from "./screens/LibraryScreen";
+import { PersonScreen } from "./screens/PersonScreen";
+import { TopicScreen } from "./screens/TopicScreen";
 import { YouScreen } from "./screens/YouScreen";
 
 function Root() {
@@ -24,7 +26,8 @@ function Root() {
   }, []);
   return (
     <>
-      <ScrollRestoration />
+      {/* Pages opened fresh all share the "default" key; tell them apart by address. */}
+      <ScrollRestoration getKey={(location) => (location.key === "default" ? location.pathname + location.search : location.key)} />
       <Outlet />
     </>
   );
@@ -48,6 +51,8 @@ const routes: RouteObject[] = [
         children: [
           { index: true, element: <HomeScreen /> },
           { path: "library", element: <LibraryScreen /> },
+          { path: "library/people/:key", element: <PersonScreen /> },
+          { path: "library/topics/:key", element: <TopicScreen /> },
           { path: "library/:id", element: <DetailScreen /> },
           { path: "you", element: <YouScreen /> },
         ],

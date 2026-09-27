@@ -7,7 +7,7 @@
 .header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .title {
@@ -18,18 +18,31 @@
   font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 72;
 }
 
+/* Accumulation, for reflection, not competition. */
 .summary {
-  font-size: var(--text-small);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 380;
+  font-size: 1.0625rem;
+  line-height: 1.4;
   color: var(--ink-3);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 24;
 }
 
-.searchBar {
+.summary strong {
+  font-weight: 460;
+  color: var(--ink-2);
+}
+
+/* Search and the Recent / People / Topics switch stay within reach while scrolling. */
+.controls {
   position: sticky;
   top: 0;
   z-index: 4;
-  margin: 22px calc(var(--gutter) * -1) 8px;
-  padding: 10px var(--gutter);
+  margin: 20px calc(var(--gutter) * -1) 0;
+  padding: 10px var(--gutter) 0;
   background: var(--paper);
+  box-shadow: 0 1px 0 var(--line);
 }
 
 .search {
@@ -86,75 +99,149 @@
   color: var(--ink-2);
 }
 
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+  padding: 10px 2px 0;
+  font-size: var(--text-small);
+  color: var(--ink-3);
+  animation: fade var(--t-base) var(--ease-out) both;
+}
+
+.suggest button {
+  min-height: 32px;
+  color: var(--ink);
+  font-weight: 540;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 4px;
+}
+
+/* Understated: three words, one of them underlined in ember. */
+.views {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  height: 48px;
+  margin-top: 4px;
+}
+
+.view {
+  position: relative;
+  height: 100%;
+  font-size: 0.9375rem;
+  font-weight: 560;
+  color: var(--ink-3);
+  transition: color var(--t-fast) var(--ease-soft);
+}
+
+.view:hover {
+  color: var(--ink-2);
+}
+
+.viewOn {
+  color: var(--ink);
+}
+
+.viewOn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ember);
+}
+
+.keptChip {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--r-pill);
+  font-size: 0.875rem;
+  font-weight: 540;
+  color: var(--ink-2);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  transition:
+    background-color var(--t-fast) var(--ease-soft),
+    color var(--t-fast) var(--ease-soft);
+}
+
+.keptChip svg {
+  color: var(--ember);
+}
+
+.keptChipOn {
+  background: var(--ember-wash);
+  box-shadow: inset 0 0 0 1px var(--ember-soft);
+  color: var(--ink);
+}
+
+.section {
+  margin-top: 24px;
+}
+
 .group {
-  margin-top: 22px;
-  padding-bottom: 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 4px;
   font-size: var(--text-meta);
   font-weight: 540;
   color: var(--ink-3);
   letter-spacing: 0.01em;
 }
 
-.list li + li {
-  border-top: 1px solid var(--line);
-}
-
-.row {
-  display: block;
-  padding: 20px 0 22px;
-  animation: rise var(--t-slow) var(--ease-out) both;
-  transition: opacity var(--t-fast) var(--ease-soft);
-}
-
-.row:active {
-  opacity: 0.6;
-}
-
-.who {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.person {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.from {
+.groupCount {
   font-weight: 450;
-  color: var(--ink-3);
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
 }
 
-.mark {
-  margin-left: auto;
+.firstList {
+  margin-top: 6px;
 }
 
-.question {
-  margin-top: 10px;
-  font-size: var(--text-question-md);
-  line-height: 1.28;
-  letter-spacing: -0.014em;
-  color: var(--ink);
-  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 30;
-  text-wrap: pretty;
-}
-
-.match {
-  margin-top: 8px;
-  font-size: var(--text-small);
-  color: var(--ink-2);
-}
-
-.match span {
-  color: var(--ember);
-}
-
-.meta {
-  margin-top: 8px;
+.footnote {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
   font-size: var(--text-meta);
   color: var(--ink-3);
+}
+
+.places {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-small);
+  color: var(--ink-3);
+}
+
+.places span {
+  font-size: var(--text-meta);
+  font-weight: 540;
+}
+
+.places button {
+  min-height: 36px;
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  color: var(--ink-2);
+  font-variation-settings: "SOFT" 100, "opsz" 24;
+  transition: color var(--t-fast) var(--ease-soft);
+}
+
+.places button:hover {
+  color: var(--ink);
 }
 
 .noResults {
@@ -174,7 +261,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 56px 0 24px;
+  padding: 48px 0 24px;
   gap: 14px;
 }
 
@@ -221,4 +308,23 @@
   color: var(--ink-2);
   max-width: 20em;
   margin-bottom: 14px;
+}
+
+.emptyExamples {
+  width: 100%;
+  margin-top: 36px;
+  text-align: left;
+}
+
+.emptyExamples li + li {
+  border-top: 1px solid var(--line);
+}
+
+.emptyExamples a {
+  display: block;
+  padding: 12px 0;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 18;
 }

@@ -21,7 +21,10 @@ export type IconName =
   | "you"
   | "heart"
   | "download"
-  | "share";
+  | "share"
+  | "bookmark"
+  | "bookmarked"
+  | "forward";
 
 const paths: Record<IconName, ReactElement> = {
   mic: (
@@ -97,6 +100,9 @@ const paths: Record<IconName, ReactElement> = {
       <path d="M6.5 11H6a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 18 11h-.5" />
     </>
   ),
+  bookmark: <path d="M7 4.5h10a1 1 0 0 1 1 1v14l-6-4-6 4v-14a1 1 0 0 1 1-1Z" />,
+  bookmarked: <path d="M7 4.5h10a1 1 0 0 1 1 1v14l-6-4-6 4v-14a1 1 0 0 1 1-1Z" fill="currentColor" />,
+  forward: <path d="M9.5 5.5 16 12l-6.5 6.5" />,
   heart: <path d="M12 19s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 2.4C19 14.6 12 19 12 19Z" />,
 };
 

@@ -58,7 +58,7 @@ export function CaptureFlow() {
   const [step, setStep] = useState<Step>(initialQuestion ? "who" : "ask");
   const [askMode, setAskMode] = useState<"voice" | "type">(params.get("type") ? "type" : "voice");
   const [question, setQuestion] = useState(initialQuestion);
-  const [person, setPerson] = useState("");
+  const [person, setPerson] = useState(params.get("person")?.trim() ?? "");
 
   const [starting, setStarting] = useState(false);
   const [listenProblem, setListenProblem] = useState<ListeningProblem | null>(null);
@@ -189,6 +189,7 @@ export function CaptureFlow() {
         setDraft({
           person: heardFrom,
           topic: result.response.topic,
+          place: result.response.place,
           things: result.response.things.map((t) => ({ id: newId(), ...t })),
         });
         setExtra(result.response.extra ? { id: newId(), ...result.response.extra } : null);
@@ -344,6 +345,7 @@ export function CaptureFlow() {
       question,
       person: value.person.trim(),
       topic: value.topic || "Life",
+      ...(value.place?.trim() ? { place: value.place.trim() } : {}),
       things,
       recordedAt: new Date().toISOString(),
       durationSec: Math.round(recordings.reduce((sum, r) => sum + r.durationSec, 0)),

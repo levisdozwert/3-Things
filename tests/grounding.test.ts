@@ -135,6 +135,13 @@ describe("groundResponse", () => {
     expect(result.extra?.headline).toBe("Get the margherita");
   });
 
+  it("keeps a place only when it was actually named", () => {
+    const named = groundResponse({ things: [thing("Walk the waterfront", "walk the waterfront")], topic: "Travel", place: "Jersey City", answered: true }, sources);
+    expect(named.place).toBe("Jersey City");
+    const guessed = groundResponse({ things: [thing("Walk the waterfront", "walk the waterfront")], topic: "Travel", place: "Hoboken", answered: true }, sources);
+    expect(guessed.place).toBeUndefined();
+  });
+
   it("tidies headlines and removes duplicates", () => {
     const result = groundResponse(
       {

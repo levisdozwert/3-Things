@@ -5,9 +5,11 @@ import type { Capture, Settings } from "./types";
 
 const STORAGE_KEY = "three-things:v1";
 
-interface Persisted {
+export interface Persisted {
   captures: Capture[];
   settings: Settings;
+  /** Sample conversations already offered, so removed ones don't come back. */
+  seeded?: string[];
 }
 
 const defaultSettings: Settings = {
@@ -17,20 +19,42 @@ const defaultSettings: Settings = {
   showSamples: true,
 };
 
+/**
+ * Keeps sample conversations current as the app grows: new samples are added
+ * once, and untouched samples pick up improvements (a place, a better topic).
+ * The user's own conversations are never changed.
+ */
+export function refreshSamples(state: Persisted): Persisted {
+  const seeds = seedCaptures();
+  const latest = new Map(seeds.map((c) => [c.id, c]));
+  const offered = new Set(state.seeded ?? state.captures.filter((c) => c.origin === "sample").map((c) => c.id));
+
+  const captures = state.captures.map((c) => {
+    const seed = latest.get(c.id);
+    if (c.origin !== "sample" || !seed || c.edited) return c;
+    return { ...seed, recordedAt: c.recordedAt, keptClose: c.keptClose };
+  });
+  const added = state.settings.showSamples ? seeds.filter((c) => !offered.has(c.id)) : [];
+
+  return { ...state, captures: [...captures, ...added], seeded: seeds.map((c) => c.id) };
+}
+
 function load(): Persisted {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<Persisted>;
-      return {
+      return refreshSamples({
         captures: parsed.captures ?? [],
         settings: { ...defaultSettings, ...parsed.settings },
-      };
+        seeded: parsed.seeded,
+      });
     }
   } catch {
     /* fall through to a fresh start */
   }
-  return { captures: seedCaptures(), settings: defaultSettings };
+  const captures = seedCaptures();
+  return { captures, settings: defaultSettings, seeded: captures.map((c) => c.id) };
 }
 
 function byNewest(a: Capture, b: Capture) {
@@ -45,6 +69,8 @@ interface Store {
   saveCapture(capture: Capture): void;
   updateCapture(id: string, patch: Partial<Capture>): void;
   deleteCapture(id: string): void;
+  /** Mark (or unmark) a conversation as especially meaningful. */
+  toggleKeepClose(id: string): void;
   updateSettings(patch: Partial<Settings>): void;
   deleteEverything(): void;
 }
@@ -75,12 +101,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, captures: s.captures.filter((c) => c.id !== id) }));
   }, []);
 
+  const toggleKeepClose = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      captures: s.captures.map((c) => (c.id === id ? { ...c, keptClose: !c.keptClose || undefined } : c)),
+    }));
+  }, []);
+
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setState((s) => {
       const settings = { ...s.settings, ...patch };
       // Turning samples back on restores any that were removed.
       if (patch.showSamples && !s.captures.some((c) => c.origin === "sample")) {
-        return { captures: [...s.captures, ...seedCaptures()], settings };
+        return { ...s, captures: [...s.captures, ...seedCaptures()], settings };
       }
       return { ...s, settings };
     });
@@ -88,7 +121,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteEverything = useCallback(() => {
     void deleteAllRecordings();
-    setState((s) => ({ captures: [], settings: { ...s.settings, showSamples: false } }));
+    setState((s) => ({ ...s, captures: [], settings: { ...s.settings, showSamples: false } }));
   }, []);
 
   const value = useMemo<Store>(() => {
@@ -102,10 +135,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveCapture,
       updateCapture,
       deleteCapture,
+      toggleKeepClose,
       updateSettings,
       deleteEverything,
     };
-  }, [state, saveCapture, updateCapture, deleteCapture, updateSettings, deleteEverything]);
+  }, [state, saveCapture, updateCapture, deleteCapture, toggleKeepClose, updateSettings, deleteEverything]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

@@ -92,7 +92,7 @@ export async function findThreeThings(req: DistillRequest, { signal, preview }: 
   if (mode === "preview") {
     const sample = closestSample(req.question);
     const response = groundResponse(
-      { things: sample.things.map(asThing), extra: sample.extra, topic: sample.topic, answered: true },
+      { things: sample.things.map(asThing), extra: sample.extra, topic: sample.topic, place: sample.place, answered: true },
       { transcript: sample.transcript, question: sample.question, person: req.person },
     );
     return { mode, sample: sample.key, response };

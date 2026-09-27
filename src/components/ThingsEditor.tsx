@@ -7,10 +7,28 @@ import styles from "./ThingsEditor.module.css";
 export interface Draft {
   person: string;
   topic: string;
+  /** Where it's about, if anywhere. */
+  place?: string;
   things: Thing[];
 }
 
-const TOPICS = ["Travel", "Food", "Work", "Career", "Startup", "Life", "Family", "Books"];
+/** Suggestions only. Topics emerge from what people ask; any word works. */
+export const TOPICS = [
+  "Startup",
+  "Career",
+  "Leadership",
+  "Work",
+  "Money",
+  "Travel",
+  "Food",
+  "Cooking",
+  "Life",
+  "Family",
+  "Parenting",
+  "Relationships",
+  "Health",
+  "Books",
+];
 
 function AutoTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -93,6 +111,18 @@ export function ThingsEditor({ value, onChange, focusIndex = null }: ThingsEdito
             ))}
           </div>
         </div>
+        <label className={styles.metaRow}>
+          <span className={styles.metaLabel}>Where</span>
+          <input
+            className={styles.metaInput}
+            value={value.place ?? ""}
+            onChange={(e) => onChange({ ...value, place: e.target.value })}
+            placeholder="A place, if it’s about one"
+            autoComplete="off"
+            autoCapitalize="words"
+            enterKeyHint="done"
+          />
+        </label>
       </div>
 
       <ol className={styles.things} ref={listRef}>

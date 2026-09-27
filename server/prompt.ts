@@ -52,7 +52,8 @@ Understand, organize, condense, remove filler and repetition, fix grammar, and k
 - needs_clarification: only when a detail the listener would need is genuinely missing or unclear (a name they couldn't remember, a mumbled word, an ambiguous "that one"), write the short follow-up question the asker could say to the speaker to clear it up, addressed to the speaker ("Which coffee place near the station did you mean?"). Keep the thing itself as vague as they were. Otherwise null. Use this rarely.
 
 ## Also return
-- topic: one or two words for the subject of the question, such as Travel, Food, Startup, Career, Work, Life, Family, or Books.
+- topic: one or two words for the subject of the question, such as Startup, Career, Leadership, Work, Money, Travel, Food, Cooking, Life, Family, Parenting, Relationships, Health, or Books.
+- place: the city, neighborhood or place the question or answer is about, written as it was said ("Boston", "Jersey City"). Only a place someone actually named; otherwise null.
 - answered: false when the transcript doesn't contain an answer to the question (silence, unrelated talk, or too little to understand). Then return no things.
 
 ## Speech recognition

@@ -27,6 +27,8 @@ export interface SampleConversation {
   person: string;
   question: string;
   topic: string;
+  /** Where it's about, when the conversation named a place. */
+  place?: string;
   /** Words that suggest a typed question is close to this one (preview mode). */
   keywords: string[];
   transcript: string;
@@ -40,7 +42,7 @@ export interface SampleConversation {
     clarify?: { index: number; transcript: string; thing: SampleThing };
   };
   /** When present, this conversation appears in the library as a saved 3 Things. */
-  seed?: { daysAgo: number; time: string };
+  seed?: { daysAgo: number; time: string; keptClose?: boolean };
 }
 
 export const sampleConversations: SampleConversation[] = [
@@ -77,6 +79,7 @@ export const sampleConversations: SampleConversation[] = [
     person: "Sarah",
     question: "What are three places I shouldn't miss in Boston?",
     topic: "Travel",
+    place: "Boston",
     keywords: ["boston", "places", "miss", "visit", "see", "trip"],
     durationSec: 104,
     seed: { daysAgo: 1, time: "18:15" },
@@ -105,6 +108,7 @@ export const sampleConversations: SampleConversation[] = [
     person: "Alex",
     question: "What are three things I should do in Jersey City?",
     topic: "Travel",
+    place: "Jersey City",
     keywords: ["jersey", "visit", "places", "miss", "here", "town", "neighborhood", "weekend", "restaurants", "eat"],
     durationSec: 134,
     seed: { daysAgo: 1, time: "12:05" },
@@ -160,10 +164,10 @@ export const sampleConversations: SampleConversation[] = [
     key: "raising-children",
     person: "Mom",
     question: "What are three things you've learned about raising children?",
-    topic: "Life",
+    topic: "Parenting",
     keywords: ["children", "kids", "raising", "parent", "parents", "parenting", "family", "learned"],
     durationSec: 147,
-    seed: { daysAgo: 9, time: "19:50" },
+    seed: { daysAgo: 9, time: "19:50", keptClose: true },
     transcript:
       "Oh, goodness. Three? Okay. Um. The first thing is that they're watching what you do much more than listening to what you say. I used to give you all these speeches and you don't remember any of them, but you all remember how your father and I treated people. Second, let them be bored. I know that sounds strange. But the best things you ever made, you made because you were bored on a Saturday. And the third one, I think, is to say sorry to them when you get it wrong. I didn't do that enough early on. When I started doing it, things got so much better between us. Kids need to see that grown-ups can be wrong too.",
     things: [
@@ -191,7 +195,7 @@ export const sampleConversations: SampleConversation[] = [
     topic: "Life",
     keywords: ["mistakes", "mistake", "twenties", "young", "regret", "regrets", "age"],
     durationSec: 118,
-    seed: { daysAgo: 15, time: "14:10" },
+    seed: { daysAgo: 15, time: "14:10", keptClose: true },
     transcript:
       "Mistakes. Plenty. Let me think. I didn't save anything. Not a dollar, until I was almost thirty. Even ten dollars a week would have added up. I stayed at a job I didn't like for five years because I was scared to ask for more. That was a big one. What else. I didn't call my father enough. He was only a phone call away and I always thought there'd be more time. So, save something, ask for what you're worth, and call your parents. I'm serious about that last one.",
     things: [
@@ -264,6 +268,290 @@ export const sampleConversations: SampleConversation[] = [
     ],
   },
   {
+    key: "jason-career",
+    person: "Jason",
+    question: "What helped you most early in your career?",
+    topic: "Career",
+    keywords: ["career", "early", "helped"],
+    durationSec: 109,
+    seed: { daysAgo: 13, time: "08:20" },
+    transcript:
+      "Early on? Honestly, having one manager who actually gave me real feedback. Not the nice kind. She'd mark up my decks in red and tell me why. That changed everything. Second, I said yes to the projects nobody wanted. The messy ones. That's where you learn the most, because nobody's watching too closely and you get to make real decisions. And third, I wrote down what I learned every Friday. Just ten minutes. After a year I had this whole notebook of lessons I'd have otherwise forgotten.",
+    things: [
+      {
+        headline: "Find someone who gives you real feedback",
+        detail: "Not the nice kind. A manager who'd mark up my decks in red and tell me why changed everything.",
+        quote: "having one manager who actually gave me real feedback",
+      },
+      {
+        headline: "Say yes to the projects nobody wants",
+        detail: "The messy ones are where you learn the most, because nobody's watching too closely and you get to make real decisions.",
+        quote: "I said yes to the projects nobody wanted",
+      },
+      {
+        headline: "Write down what you learned every Friday",
+        detail: "Just ten minutes. After a year I had a whole notebook of lessons I'd have otherwise forgotten.",
+        quote: "I wrote down what I learned every Friday",
+      },
+    ],
+  },
+  {
+    key: "jason-managing",
+    person: "Jason",
+    question: "What are three things you learned managing people?",
+    topic: "Leadership",
+    keywords: ["managing", "manage", "manager", "people", "team", "leadership"],
+    durationSec: 96,
+    seed: { daysAgo: 36, time: "17:45" },
+    transcript:
+      "Managing people. Okay. One, say the hard thing early. Every time I waited, it got worse and it got more expensive. Two, your team copies what you do, not what you say. If I answered emails at midnight, suddenly everybody did. And three, one-on-ones are their meeting, not yours. Let them set the agenda. I used to run them like status updates and I learned nothing.",
+    things: [
+      {
+        headline: "Say the hard thing early",
+        detail: "Every time I waited, it got worse and it got more expensive.",
+        quote: "say the hard thing early",
+      },
+      {
+        headline: "Your team copies what you do, not what you say",
+        detail: "If I answered emails at midnight, suddenly everybody did.",
+        quote: "your team copies what you do, not what you say",
+      },
+      {
+        headline: "Let them own the one-on-one",
+        detail: "It's their meeting, not yours. When I ran them like status updates, I learned nothing.",
+        quote: "one-on-ones are their meeting, not yours. Let them set the agenda.",
+      },
+    ],
+  },
+  {
+    key: "jason-hiring",
+    person: "Jason",
+    question: "What are three things every founder should know before hiring?",
+    topic: "Startup",
+    keywords: ["hiring", "hire", "founder", "before"],
+    durationSec: 88,
+    seed: { daysAgo: 58, time: "10:10" },
+    transcript:
+      "Before hiring. First, write down the job before you meet anyone. Otherwise you'll hire the person you liked talking to. Second, check references properly. Ask what they'd hire them for again, not whether they were good. And third, hire more slowly than you think you need to. Seriously. A bad early hire costs you months.",
+    things: [
+      {
+        headline: "Write the job down before you meet anyone",
+        detail: "Otherwise you'll hire the person you liked talking to.",
+        quote: "write down the job before you meet anyone",
+      },
+      {
+        headline: "Check references properly",
+        detail: "Ask what they'd hire the person for again, not whether they were good.",
+        quote: "check references properly. Ask what they'd hire them for again",
+      },
+      {
+        headline: "Hire more slowly than you think you need to",
+        detail: "A bad early hire costs you months.",
+        quote: "hire more slowly than you think you need to",
+      },
+    ],
+  },
+  {
+    // A different view of hiring than Jason's. Both are kept, side by side.
+    key: "maya-again",
+    person: "Maya",
+    question: "What are three things you'd do differently if you started again?",
+    topic: "Startup",
+    keywords: ["differently", "again", "started", "startup"],
+    durationSec: 102,
+    seed: { daysAgo: 4, time: "13:30" },
+    transcript:
+      "If I started again? I'd hire faster, honestly. Everyone told me to hire slowly, and I think early-stage companies sometimes need to hire faster than feels comfortable. We lost six months doing everything ourselves. Second, I wouldn't mistake revenue for cash. We had great months on paper and the bank account said otherwise. And third, I'd take one real day off a week. Burnout cost us more than any competitor did.",
+    things: [
+      {
+        headline: "Hire faster than feels comfortable",
+        detail:
+          "Early-stage companies sometimes need to hire faster than feels comfortable. We lost six months doing everything ourselves.",
+        quote: "early-stage companies sometimes need to hire faster than feels comfortable",
+      },
+      {
+        headline: "Don't mistake revenue for cash",
+        detail: "We had great months on paper and the bank account said otherwise.",
+        quote: "I wouldn't mistake revenue for cash",
+      },
+      {
+        headline: "Take one real day off a week",
+        detail: "Burnout cost us more than any competitor did.",
+        quote: "I'd take one real day off a week",
+      },
+    ],
+  },
+  {
+    key: "carlos-round",
+    person: "Carlos",
+    question: "What are three things you learned raising your first round?",
+    topic: "Startup",
+    keywords: ["raising", "round", "investors", "fundraising", "funding"],
+    durationSec: 79,
+    seed: { daysAgo: 10, time: "15:05" },
+    transcript:
+      "Raising the first round. One, it takes twice as long as you think, so start before you need the money. Two, a warm intro beats a perfect deck. Every investor who said yes came through someone they trusted. Three, pick the person, not the firm. You'll work with that one partner, not the logo.",
+    things: [
+      {
+        headline: "Start raising before you need the money",
+        detail: "It takes twice as long as you think.",
+        quote: "it takes twice as long as you think, so start before you need the money",
+      },
+      {
+        headline: "A warm intro beats a perfect deck",
+        detail: "Every investor who said yes came through someone they trusted.",
+        quote: "a warm intro beats a perfect deck",
+      },
+      {
+        headline: "Pick the person, not the firm",
+        detail: "You'll work with that one partner, not the logo.",
+        quote: "pick the person, not the firm",
+      },
+    ],
+  },
+  {
+    key: "sarah-moving",
+    person: "Sarah",
+    question: "What are three things you'd tell someone moving to Boston?",
+    topic: "Life",
+    place: "Boston",
+    keywords: ["moving", "move", "boston"],
+    durationSec: 84,
+    seed: { daysAgo: 16, time: "20:40" },
+    transcript:
+      "Moving to Boston. Okay. Get a good winter coat before November, not after. Everyone learns that one the hard way. Don't bother with a car if you live near the T. Parking is miserable. And say yes to every invitation the first year. People here seem reserved, but they warm up if you keep showing up.",
+    things: [
+      {
+        headline: "Get a good winter coat before November",
+        detail: "Not after. Everyone learns that one the hard way.",
+        quote: "Get a good winter coat before November, not after.",
+      },
+      {
+        headline: "Skip the car if you live near the T",
+        detail: "Parking is miserable.",
+        quote: "Don't bother with a car if you live near the T.",
+      },
+      {
+        headline: "Say yes to every invitation the first year",
+        detail: "People seem reserved, but they warm up if you keep showing up.",
+        quote: "say yes to every invitation the first year",
+      },
+    ],
+  },
+  {
+    key: "sarah-grandmother",
+    person: "Sarah",
+    question: "What are three dishes you learned from your grandmother?",
+    topic: "Cooking",
+    keywords: ["dishes", "grandmother", "recipes", "cook", "cooking"],
+    durationSec: 73,
+    seed: { daysAgo: 30, time: "18:55" },
+    transcript:
+      "My grandmother's dishes. Her lentil soup, for sure. The trick is lemon at the very end, not during. Then her flatbread, which she made every Sunday. And her rice pudding with cardamom. I still can't get it exactly right, but I keep trying.",
+    things: [
+      {
+        headline: "Her lentil soup",
+        detail: "The trick is lemon at the very end, not during.",
+        quote: "Her lentil soup, for sure. The trick is lemon at the very end",
+      },
+      {
+        headline: "Her Sunday flatbread",
+        detail: "She made it every Sunday.",
+        quote: "her flatbread, which she made every Sunday",
+      },
+      {
+        headline: "Rice pudding with cardamom",
+        detail: "I still can't get it exactly right, but I keep trying.",
+        quote: "her rice pudding with cardamom",
+      },
+    ],
+  },
+  {
+    key: "mom-sick",
+    person: "Mom",
+    question: "What are three things you always cook when someone's sick?",
+    topic: "Cooking",
+    keywords: ["cook", "sick", "soup", "cooking"],
+    durationSec: 58,
+    seed: { daysAgo: 12, time: "12:15" },
+    transcript:
+      "When someone's sick? Chicken soup, obviously, with a lot of ginger. Plain rice with a little butter, because nobody can say no to that. And cinnamon tea with honey. That was my mother's, and her mother's.",
+    things: [
+      {
+        headline: "Chicken soup with a lot of ginger",
+        detail: "",
+        quote: "Chicken soup, obviously, with a lot of ginger.",
+      },
+      {
+        headline: "Plain rice with a little butter",
+        detail: "Nobody can say no to that.",
+        quote: "Plain rice with a little butter, because nobody can say no to that.",
+      },
+      {
+        headline: "Cinnamon tea with honey",
+        detail: "That was my mother's, and her mother's.",
+        quote: "cinnamon tea with honey. That was my mother's, and her mother's.",
+      },
+    ],
+  },
+  {
+    key: "mom-marriage",
+    person: "Mom",
+    question: "What are three things that make a marriage last?",
+    topic: "Relationships",
+    keywords: ["marriage", "relationship", "relationships", "last", "love"],
+    durationSec: 81,
+    seed: { daysAgo: 40, time: "21:10" },
+    transcript:
+      "What makes it last. You have to stay curious about each other. People change, and you have to keep meeting the new person. Fight about the thing, not about each other. And laugh. Your father still makes me laugh every day, even when I'm annoyed with him.",
+    things: [
+      {
+        headline: "Stay curious about each other",
+        detail: "People change, and you have to keep meeting the new person.",
+        quote: "You have to stay curious about each other.",
+      },
+      {
+        headline: "Fight about the thing, not about each other",
+        detail: "",
+        quote: "Fight about the thing, not about each other.",
+      },
+      {
+        headline: "Keep laughing together",
+        detail: "Your father still makes me laugh every day, even when I'm annoyed with him.",
+        quote: "Your father still makes me laugh every day",
+      },
+    ],
+  },
+  {
+    key: "alex-food",
+    person: "Alex",
+    question: "What are three food places I should try in Jersey City?",
+    topic: "Food",
+    place: "Jersey City",
+    keywords: ["food", "eat", "restaurants", "jersey"],
+    durationSec: 77,
+    seed: { daysAgo: 7, time: "19:30" },
+    transcript:
+      "Food in Jersey City. Razza, for pizza. Get the margherita and go early, the line gets long. Then just walk Newark Avenue in India Square and eat whatever smells best. Seriously, you can't go wrong. And the Grove Street farmers market on Saturday mornings, for the bread and the coffee.",
+    things: [
+      {
+        headline: "Razza, for pizza",
+        detail: "Get the margherita and go early. The line gets long.",
+        quote: "Razza, for pizza. Get the margherita and go early",
+      },
+      {
+        headline: "Eat your way down Newark Avenue",
+        detail: "Walk India Square and eat whatever smells best. You can't go wrong.",
+        quote: "walk Newark Avenue in India Square and eat whatever smells best",
+      },
+      {
+        headline: "The Grove Street farmers market",
+        detail: "Saturday mornings, for the bread and the coffee.",
+        quote: "the Grove Street farmers market on Saturday mornings, for the bread and the coffee",
+      },
+    ],
+  },
+  {
     // The spec's founder conversation: a correction mid-thought, the asker chiming in,
     // four ideas, one of them named "the most important thing", and one memorable line.
     key: "founder-know",
@@ -305,6 +593,7 @@ export const sampleConversations: SampleConversation[] = [
     person: "",
     question: "What are three places I shouldn’t miss in Jersey City?",
     topic: "Travel",
+    place: "Jersey City",
     keywords: ["jersey", "places", "shouldn't", "shouldn’t"],
     durationSec: 97,
     transcript:
@@ -429,6 +718,8 @@ export function seedCaptures(now = new Date()): Capture[] {
       durationSec: c.durationSec,
       hasAudio: false,
       origin: "sample" as const,
+      ...(c.place ? { place: c.place } : {}),
+      ...(c.seed!.keptClose ? { keptClose: true } : {}),
     }));
 }
 

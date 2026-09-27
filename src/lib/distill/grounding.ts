@@ -154,10 +154,15 @@ export function groundResponse(response: DistillResponse, sources: Sources): Dis
   const extraThing = response.extra ? groundThing(response.extra, sources) : null;
   const extra = extraThing && !seen.has(extraThing.headline.toLowerCase()) ? extraThing : undefined;
 
+  // A place is only kept if every word of it was said (in the question or the answer).
+  const place = tidy(response.place).replace(/[.,]+$/, "");
+  const placeKnown = place && words(place).every((w) => words(`${sources.transcript} ${sources.question ?? ""}`).includes(w));
+
   return {
     things,
     ...(extra ? { extra } : {}),
     topic: tidy(response.topic) || "Life",
+    ...(placeKnown ? { place } : {}),
     answered: response.answered && things.length > 0,
   };
 }

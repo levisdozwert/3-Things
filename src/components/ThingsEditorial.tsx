@@ -54,6 +54,7 @@ export function ThingsEditorial({
       {things.map((thing, i) => (
         <li
           key={thing.id}
+          id={`thing-${thing.id}`}
           className={[styles.item, reveal ? styles.reveal : "", fresh.includes(thing.id) ? styles.fresh : ""].join(" ")}
           style={{ "--i": i } as CSSProperties}
         >

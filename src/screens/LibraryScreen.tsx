@@ -1,83 +1,89 @@
-import { useMemo, useState, type CSSProperties } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Avatar } from "../components/Avatar";
+import { useMemo, useState, type ReactNode } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
-import { Mark } from "../components/Mark";
-import { count, daysAgo, relativeDay } from "../lib/format";
+import { ConversationRow, PersonRow, ThingRow, TopicRow } from "../components/library/Rows";
+import rows from "../components/library/Library.module.css";
+import { daysAgo } from "../lib/format";
+import { listPeople, listPlaces, listTopics, searchLibrary } from "../lib/library";
+import { starterQuestions } from "../lib/samples";
 import { useStore } from "../lib/store";
 import type { Capture } from "../lib/types";
 import styles from "./LibraryScreen.module.css";
 
-interface Result {
-  capture: Capture;
-  /** A thing that matched the search when the question itself didn't. */
-  matchedThing?: string;
-}
+type View = "recent" | "people" | "topics";
+const VIEWS: { id: View; label: string }[] = [
+  { id: "recent", label: "Recent" },
+  { id: "people", label: "People" },
+  { id: "topics", label: "Topics" },
+];
 
-function normalize(text: string) {
-  return text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
-}
-
-function search(captures: Capture[], query: string): Result[] {
-  const terms = normalize(query).split(/\s+/).filter(Boolean);
-  if (terms.length === 0) return captures.map((capture) => ({ capture }));
-
-  return captures.flatMap((capture) => {
-    const head = normalize(`${capture.person} ${capture.question} ${capture.topic}`);
-    const things = capture.things.map((t) => normalize(`${t.headline} ${t.detail}`));
-    const all = `${head} ${things.join(" ")}`;
-    if (!terms.every((term) => all.includes(term))) return [];
-    const headMatches = terms.every((term) => head.includes(term));
-    const thing = headMatches ? undefined : capture.things.find((_, i) => terms.some((term) => things[i].includes(term)));
-    return [{ capture, matchedThing: thing?.headline }];
-  });
-}
-
-function Row({ capture, matchedThing }: Result) {
+function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
-    <li>
-      <Link to={`/library/${capture.id}`} viewTransition className={styles.row}>
-        <div className={styles.who}>
-          <Avatar name={capture.person} size="sm" />
-          <span className={styles.person}>
-            {capture.person ? (
-              <>
-                <span className={styles.from}>From</span> {capture.person}
-              </>
-            ) : (
-              <span className={styles.from}>From this conversation</span>
-            )}
-          </span>
-          <Mark size="sm" tone="muted" filled={capture.things.length} className={styles.mark} />
-        </div>
-        <p
-          className={`serif ${styles.question}`}
-          style={{ viewTransitionName: `question-${capture.id}` } as CSSProperties}
-        >
-          {capture.question}
-        </p>
-        {matchedThing && (
-          <p className={styles.match}>
-            <span aria-hidden="true">↳</span> {matchedThing}
-          </p>
-        )}
-        <p className={styles.meta}>
-          {capture.topic} · {relativeDay(capture.recordedAt)}
-        </p>
-      </Link>
-    </li>
+    <section className={styles.section}>
+      <h2 className={styles.group}>
+        {title}
+        {count !== undefined && <span className={styles.groupCount}>{count}</span>}
+      </h2>
+      <ul className={rows.list}>{children}</ul>
+    </section>
   );
 }
 
+function Recent({ captures }: { captures: Capture[] }) {
+  const groups: { title: string; items: Capture[] }[] = [
+    { title: "Today", items: captures.filter((c) => daysAgo(c.recordedAt) <= 0) },
+    { title: "This week", items: captures.filter((c) => daysAgo(c.recordedAt) > 0 && daysAgo(c.recordedAt) <= 6) },
+    { title: "Earlier", items: captures.filter((c) => daysAgo(c.recordedAt) > 6) },
+  ];
+  return (
+    <>
+      {groups
+        .filter((g) => g.items.length > 0)
+        .map((g) => (
+          <Section key={g.title} title={g.title}>
+            {g.items.map((c) => (
+              <ConversationRow key={c.id} capture={c} />
+            ))}
+          </Section>
+        ))}
+    </>
+  );
+}
+
+/**
+ * Your 3 Things: everything people have taught you, organized the way you
+ * remember it. By when, by who, and by what it was about.
+ */
 export function LibraryScreen() {
   const { captures } = useStore();
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
+  const [params, setParams] = useSearchParams();
+  const [focused, setFocused] = useState(false);
 
-  const results = useMemo(() => search(captures, query), [captures, query]);
-  const people = new Set(captures.map((c) => c.person.trim().toLowerCase()).filter(Boolean)).size;
+  const view = VIEWS.find((v) => v.id === params.get("view"))?.id ?? "recent";
+  const query = params.get("q") ?? "";
+  const keptOnly = params.get("kept") === "1";
+
+  const update = (next: { view?: View; q?: string; kept?: boolean }) => {
+    const merged = { view, q: query, kept: keptOnly, ...next };
+    const out: Record<string, string> = {};
+    if (merged.view !== "recent") out.view = merged.view;
+    if (merged.q) out.q = merged.q;
+    if (merged.kept && merged.view === "recent") out.kept = "1";
+    setParams(out, { replace: true });
+  };
+
+  const people = useMemo(() => listPeople(captures), [captures]);
+  const topics = useMemo(() => listTopics(captures), [captures]);
+  const places = useMemo(() => listPlaces(captures), [captures]);
+  const results = useMemo(() => searchLibrary(captures, query), [captures, query]);
+
   const things = captures.reduce((n, c) => n + c.things.length, 0);
+  const kept = captures.filter((c) => c.keptClose);
+  const unnamed = captures.filter((c) => !c.person.trim()).length;
+  const searching = query.trim().length > 0;
+  const suggestions = [places[0], people[0]?.name, topics[0]?.name].filter(Boolean) as string[];
 
   if (captures.length === 0) {
     return (
@@ -92,87 +98,191 @@ export function LibraryScreen() {
               </li>
             ))}
           </ol>
-          <h2 className={`serif ${styles.emptyTitle}`}>What people tell you will live here.</h2>
-          <p className={styles.emptyText}>Ask someone a question, and keep the three things they share.</p>
+          <h2 className={`serif ${styles.emptyTitle}`}>Your Library grows one conversation at a time.</h2>
+          <p className={styles.emptyText}>Ask someone something worth remembering.</p>
           <Button icon="mic" onClick={() => navigate("/ask", { viewTransition: true })}>
             Ask for 3
           </Button>
+          <div className={styles.emptyExamples}>
+            <p className={styles.group}>Try asking someone</p>
+            <ul>
+              {starterQuestions.map((q) => (
+                <li key={q}>
+                  <Link to={`/ask?q=${encodeURIComponent(q)}`} viewTransition className="serif">
+                    “{q}”
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </main>
     );
   }
 
-  const thisWeek = results.filter((r) => daysAgo(r.capture.recordedAt) <= 6);
-  const earlier = results.filter((r) => daysAgo(r.capture.recordedAt) > 6);
-  const searching = query.trim().length > 0;
+  const nothingFound = searching && results.people.length + results.questions.length + results.things.length === 0;
 
   return (
     <main className={styles.library}>
       <header className={styles.header}>
         <h1 className={`serif ${styles.title}`}>Your 3 Things</h1>
         <p className={styles.summary}>
-          {count(things, "thing")} from {count(people, "person", "people")}
+          {people.length > 0 ? (
+            <>
+              You’ve learned <strong>{things} {things === 1 ? "thing" : "things"}</strong> from{" "}
+              <strong>
+                {people.length} {people.length === 1 ? "person" : "people"}
+              </strong>
+              .
+            </>
+          ) : (
+            <>
+              You’ve kept <strong>{things} {things === 1 ? "thing" : "things"}</strong> so far.
+            </>
+          )}
         </p>
       </header>
 
-      <div className={styles.searchBar}>
+      <div className={styles.controls}>
         <label className={styles.search}>
           <Icon name="search" size={20} />
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => update({ q: e.target.value })}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             placeholder="Search people, questions or things"
             aria-label="Search people, questions or things"
             enterKeyHint="search"
+            autoComplete="off"
           />
           {searching && (
-            <button type="button" className={styles.clear} onClick={() => setQuery("")} aria-label="Clear search">
+            <button type="button" className={styles.clear} onClick={() => update({ q: "" })} aria-label="Clear search">
               <Icon name="close" size={16} strokeWidth={2} />
             </button>
           )}
         </label>
+
+        {!searching && focused && suggestions.length > 0 && (
+          <p className={styles.suggest}>
+            <span>Try</span>
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                // Keep focus in the field so the keyboard stays up.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => update({ q: s })}
+              >
+                {s}
+              </button>
+            ))}
+          </p>
+        )}
+
+        {!searching && (
+          <div className={styles.views} role="tablist" aria-label="Organize by">
+            {VIEWS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                role="tab"
+                aria-selected={view === v.id}
+                className={`${styles.view} ${view === v.id ? styles.viewOn : ""}`}
+                onClick={() => update({ view: v.id, kept: false })}
+              >
+                {v.label}
+              </button>
+            ))}
+            {view === "recent" && kept.length > 0 && (
+              <button
+                type="button"
+                className={`${styles.keptChip} ${keptOnly ? styles.keptChipOn : ""}`}
+                aria-pressed={keptOnly}
+                onClick={() => update({ kept: !keptOnly })}
+              >
+                <Icon name={keptOnly ? "bookmarked" : "bookmark"} size={16} strokeWidth={1.7} />
+                Kept close
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {searching && results.length === 0 ? (
-        <div className={styles.noResults}>
-          <p className="serif">Nothing matches “{query.trim()}”.</p>
-          <p>Try a name, a place, or a word they used.</p>
-        </div>
-      ) : searching ? (
-        <section>
-          <h2 className={styles.group}>
-            {results.length} {results.length === 1 ? "conversation" : "conversations"}
-          </h2>
-          <ul className={styles.list}>
-            {results.map((r) => (
-              <Row key={r.capture.id} {...r} />
+      {searching ? (
+        nothingFound ? (
+          <div className={styles.noResults}>
+            <p className="serif">Nothing yet about “{query.trim()}”.</p>
+            <p>Try a name, a place, or a word they used.</p>
+          </div>
+        ) : (
+          <div aria-live="polite">
+            {results.people.length > 0 && (
+              <Section title="People" count={results.people.length}>
+                {results.people.map(({ person, by, mentions }) => (
+                  <PersonRow
+                    key={person.key}
+                    person={person}
+                    terms={results.terms}
+                    note={
+                      by === "mention"
+                        ? `Talked about this in ${mentions} ${mentions === 1 ? "conversation" : "conversations"}`
+                        : undefined
+                    }
+                  />
+                ))}
+              </Section>
+            )}
+            {results.questions.length > 0 && (
+              <Section title="Questions" count={results.questions.length}>
+                {results.questions.map((c) => (
+                  <ConversationRow key={c.id} capture={c} terms={results.terms} />
+                ))}
+              </Section>
+            )}
+            {results.things.length > 0 && (
+              <Section title="Things" count={results.things.length}>
+                {results.things.map(({ capture, thing }) => (
+                  <ThingRow key={thing.id} capture={capture} thing={thing} terms={results.terms} />
+                ))}
+              </Section>
+            )}
+          </div>
+        )
+      ) : view === "people" ? (
+        <>
+          <ul className={`${rows.list} ${styles.firstList}`}>
+            {people.map((p) => (
+              <PersonRow key={p.key} person={p} />
             ))}
           </ul>
-        </section>
-      ) : (
-        <>
-          {thisWeek.length > 0 && (
-            <section>
-              <h2 className={styles.group}>This week</h2>
-              <ul className={styles.list}>
-                {thisWeek.map((r) => (
-                  <Row key={r.capture.id} {...r} />
-                ))}
-              </ul>
-            </section>
-          )}
-          {earlier.length > 0 && (
-            <section>
-              <h2 className={styles.group}>Earlier</h2>
-              <ul className={styles.list}>
-                {earlier.map((r) => (
-                  <Row key={r.capture.id} {...r} />
-                ))}
-              </ul>
-            </section>
+          {unnamed > 0 && (
+            <p className={styles.footnote}>
+              And {unnamed} {unnamed === 1 ? "conversation" : "conversations"} without a name.
+            </p>
           )}
         </>
+      ) : view === "topics" ? (
+        <>
+          <ul className={`${rows.list} ${styles.firstList}`}>
+            {topics.map((t) => (
+              <TopicRow key={t.key} topic={t} />
+            ))}
+          </ul>
+          {places.length > 0 && (
+            <p className={styles.places}>
+              <span>Places</span>
+              {places.map((place) => (
+                <button key={place} type="button" onClick={() => update({ q: place })}>
+                  {place}
+                </button>
+              ))}
+            </p>
+          )}
+        </>
+      ) : (
+        <Recent captures={keptOnly ? kept : captures} />
       )}
     </main>
   );

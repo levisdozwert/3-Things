@@ -23,6 +23,8 @@ export interface Capture {
   /** Who answered. Empty when the user didn't add a name. */
   person: string;
   topic: string;
+  /** Where it's about, when the question or answer named a place ("Boston"). Quiet metadata for now. */
+  place?: string;
   /** One to three things. Never padded to three. */
   things: Thing[];
   recordedAt: string;
@@ -35,6 +37,8 @@ export interface Capture {
   edited?: boolean;
   /** Made in preview mode from a sample conversation. */
   preview?: boolean;
+  /** Marked as especially meaningful. */
+  keptClose?: boolean;
 }
 
 export interface Settings {

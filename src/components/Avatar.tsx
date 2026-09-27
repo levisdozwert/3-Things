@@ -18,7 +18,7 @@ function initial(name: string) {
 
 interface AvatarProps {
   name: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
 }
 
 /** A warm monogram for the person the knowledge came from. */

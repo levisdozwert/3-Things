@@ -1,0 +1,217 @@
+/* Entries in a personal journal: person, question, quiet context. No cards. */
+
+.list > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.row {
+  display: block;
+  padding: 20px 0 22px;
+  transition: opacity var(--t-fast) var(--ease-soft);
+}
+
+.row:active,
+.personRow:active,
+.topicRow:active,
+.thingRow:active {
+  opacity: 0.6;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.person {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.unnamed {
+  font-size: 0.9375rem;
+  color: var(--ink-3);
+}
+
+.kept,
+.keptInline {
+  display: inline-flex;
+  color: var(--ember);
+}
+
+.kept {
+  margin-left: auto;
+}
+
+.keptInline {
+  margin-left: 8px;
+  vertical-align: -2px;
+}
+
+.eyebrow {
+  font-size: var(--text-meta);
+  font-weight: 540;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+
+.question {
+  margin-top: 8px;
+  font-size: var(--text-question-md);
+  line-height: 1.28;
+  letter-spacing: -0.014em;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 30;
+  text-wrap: pretty;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.eyebrow + .question {
+  margin-top: 4px;
+}
+
+.things {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.things li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: baseline;
+  font-size: var(--text-small);
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.things li > span:first-child {
+  font-size: 0.9375rem;
+  color: var(--ember);
+  font-variation-settings: "SOFT" 100, "opsz" 24;
+}
+
+.meta {
+  margin-top: 8px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.things + .meta {
+  margin-top: 12px;
+}
+
+.personRow,
+.topicRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 0;
+}
+
+.personText {
+  flex: 1;
+  min-width: 0;
+}
+
+.personName {
+  font-size: 1.3125rem;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 36;
+}
+
+.counts {
+  margin-top: 3px;
+  font-size: var(--text-small);
+  color: var(--ink-2);
+}
+
+.topicsLine {
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.topicRow > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.topicName {
+  font-size: 1.375rem;
+  line-height: 1.2;
+  letter-spacing: -0.014em;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 36;
+}
+
+.chevron {
+  color: var(--ink-4);
+}
+
+.thingRow {
+  display: block;
+  padding: 16px 0 18px;
+}
+
+.thingHeadline {
+  font-size: 1.1875rem;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+  font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 30;
+  text-wrap: pretty;
+}
+
+.thingDetail {
+  margin-top: 4px;
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The source travels with every idea. */
+.source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  min-width: 0;
+  font-size: var(--text-meta);
+  color: var(--ink-3);
+}
+
+.sourceName {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.sourceQuestion {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sourceQuestion::before {
+  content: "· ";
+}
+
+.mark {
+  background: var(--ember-soft);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}

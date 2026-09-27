@@ -17,6 +17,7 @@ const DistillSchema = z.object({
   things: z.array(ThingSchema),
   one_more: ThingSchema.nullable(),
   topic: z.string(),
+  place: z.string().nullable(),
   answered: z.boolean(),
 });
 
@@ -76,6 +77,7 @@ export async function distill(req: DistillRequest, options: DistillOptions = {})
       things: parsed.things.map(toThing),
       ...(parsed.one_more && !followUp ? { extra: toThing(parsed.one_more) } : {}),
       topic: parsed.topic,
+      ...(parsed.place ? { place: parsed.place } : {}),
       answered: parsed.answered,
     },
     {

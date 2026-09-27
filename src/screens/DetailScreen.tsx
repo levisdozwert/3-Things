@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AudioPlayer } from "../components/AudioPlayer";
 import { Avatar } from "../components/Avatar";
 import { Button, IconButton } from "../components/Button";
@@ -8,8 +8,10 @@ import { Sheet } from "../components/Sheet";
 import { ThingsEditorial } from "../components/ThingsEditorial";
 import { loadRecording } from "../lib/audio/audioStore";
 import { calendarDate, duration, sourceLine } from "../lib/format";
+import { personKey, topicKey } from "../lib/library";
 import { shareCapture, type ShareResult } from "../lib/share";
 import { useStore } from "../lib/store";
+import { useBack } from "../lib/useBack";
 import { EditStep } from "./capture/EditStep";
 import flow from "./capture/Flow.module.css";
 import styles from "./DetailScreen.module.css";
@@ -21,8 +23,12 @@ import styles from "./DetailScreen.module.css";
 export function DetailScreen() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { getCapture, updateCapture, deleteCapture } = useStore();
+  const location = useLocation();
+  const back = useBack("/library");
+  const { getCapture, updateCapture, deleteCapture, toggleKeepClose } = useStore();
   const capture = getCapture(id);
+  // Arriving from a search result: bring that one thing forward.
+  const focus = (location.state as { focus?: string } | null)?.focus;
 
   const [editing, setEditing] = useState(false);
   const [clips, setClips] = useState<Blob[]>([]);
@@ -37,6 +43,14 @@ export function DetailScreen() {
       alive = false;
     };
   }, [id, hasAudio]);
+
+  useEffect(() => {
+    if (!focus) return;
+    const timeout = window.setTimeout(() => {
+      document.getElementById(`thing-${focus}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [focus]);
 
   useEffect(() => {
     if (!shared) return;
@@ -57,18 +71,22 @@ export function DetailScreen() {
     );
   }
 
-  const back = () => navigate("/library", { viewTransition: true });
   const person = capture.person.trim();
-  const meta = [calendarDate(capture.recordedAt), capture.topic, capture.durationSec > 0 ? duration(capture.durationSec) : null]
-    .filter(Boolean)
-    .join(" · ");
+  const kept = Boolean(capture.keptClose);
 
   return (
     <main className={styles.detail}>
       <div className={styles.topbar}>
-        <IconButton icon="back" label="Your 3 Things" onClick={back} />
+        <IconButton icon="back" label="Back" onClick={back} />
         <div className={styles.actions}>
           {shared === "copied" && <span className={styles.copied}>Copied</span>}
+          <IconButton
+            icon={kept ? "bookmarked" : "bookmark"}
+            label={kept ? "Kept close" : "Keep close"}
+            aria-pressed={kept}
+            className={kept ? styles.keptOn : undefined}
+            onClick={() => toggleKeepClose(capture.id)}
+          />
           <IconButton icon="share" label="Share" onClick={async () => setShared(await shareCapture(capture))} />
           <Button variant="text" size="sm" icon="pencil" onClick={() => setEditing(true)}>
             Edit
@@ -80,8 +98,31 @@ export function DetailScreen() {
         <div className={styles.person}>
           <Avatar name={person} size="lg" />
           <div>
-            <p className={`serif ${styles.name} ${person ? "" : styles.unnamed}`}>{person || sourceLine("")}</p>
-            <p className={styles.meta}>{meta}</p>
+            {person ? (
+              <Link
+                to={`/library/people/${encodeURIComponent(personKey(person))}`}
+                viewTransition
+                className={`serif ${styles.name} ${styles.nameLink}`}
+              >
+                {person}
+              </Link>
+            ) : (
+              <p className={`serif ${styles.name} ${styles.unnamed}`}>{sourceLine("")}</p>
+            )}
+            <p className={styles.meta}>
+              {calendarDate(capture.recordedAt)}
+              {capture.topic && (
+                <>
+                  {" · "}
+                  <Link to={`/library/topics/${encodeURIComponent(topicKey(capture.topic))}`} viewTransition>
+                    {capture.topic}
+                  </Link>
+                </>
+              )}
+              {capture.place && ` · ${capture.place}`}
+              {capture.durationSec > 0 && ` · ${duration(capture.durationSec)}`}
+            </p>
+            {kept && <p className={styles.keptNote}>Kept close</p>}
           </div>
         </div>
 
@@ -94,7 +135,7 @@ export function DetailScreen() {
         </h1>
       </header>
 
-      <ThingsEditorial things={capture.things} person={person} />
+      <ThingsEditorial things={capture.things} person={person} fresh={focus ? [focus] : []} />
 
       <div className={styles.after}>
         {clips.map((clip, i) => (
@@ -132,13 +173,14 @@ export function DetailScreen() {
           <div className={flow.flow}>
             <EditStep
               question={capture.question}
-              draft={{ person: capture.person, topic: capture.topic, things: capture.things }}
+              draft={{ person: capture.person, topic: capture.topic, place: capture.place, things: capture.things }}
               saveLabel="Save changes"
               onCancel={() => setEditing(false)}
               onSave={(draft) => {
                 updateCapture(capture.id, {
                   person: draft.person.trim(),
                   topic: draft.topic,
+                  place: draft.place?.trim() || undefined,
                   things: draft.things.map((t) => ({ ...t, headline: t.headline.trim(), detail: t.detail.trim() })),
                   edited: capture.origin !== "manual" ? true : undefined,
                 });
@@ -160,7 +202,7 @@ export function DetailScreen() {
               block
               onClick={() => {
                 deleteCapture(capture.id);
-                back();
+                navigate("/library", { replace: true, viewTransition: true });
               }}
             >
               Remove

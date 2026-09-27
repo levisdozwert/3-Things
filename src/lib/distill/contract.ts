@@ -65,6 +65,8 @@ export interface DistillResponse {
   /** A fourth idea the speaker also clearly cared about. Never shown as a fourth thing. */
   extra?: DistilledThing;
   topic: string;
+  /** The place the question or answer is about, when one was named ("Boston"). */
+  place?: string;
   /** False when the recording didn't contain an answer to the question. */
   answered: boolean;
 }

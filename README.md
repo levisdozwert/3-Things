@@ -31,7 +31,29 @@ The recording never interrupts the conversation. If someone gives two things or 
 
 Problems get one plain sentence and one way forward: *We couldn't access your microphone. Check microphone access and try again.*, *We couldn't find a microphone.*, *The recording stopped.*, *We didn't catch that.*
 
-Plus **Library** (*Your 3 Things*: search across people, questions and things, grouped by This week / Earlier) and **You** (profile, listening settings, export, and a short explanation of how 3 Things listens). Navigation is three tabs: Home, Library, You.
+Plus the **Library** (below) and **You** (profile, listening settings, export, and a short explanation of how 3 Things listens). Navigation is three tabs: Home, Library, You.
+
+## The Library
+
+Over time the Library becomes a record of what people have taught you, organized the way you remember it: **people → questions → things worth remembering**. It reads like a journal, not a database.
+
+| Screen | What it does |
+| --- | --- |
+| **Your 3 Things** | A quiet growth line (*You've learned 53 things from 10 people.*), then search, then an understated **Recent · People · Topics** switch. No extra tab, no streaks, no scores. |
+| **Recent** | The default. Grouped *Today*, *This week* and *Earlier*. Each row leads with the person (small initial avatar), then the question in serif, then a quiet line: topic · place · when. A **Kept close** chip filters to the conversations you bookmarked. |
+| **People** | Everyone you've asked, with how many things you've learned from them and what you talked about. No profiles, followers or social features. Unnamed conversations are counted in a footnote, never guessed. |
+| **Person** | *15 things you've learned from Jason*, the topics and places that came up, then *What you've asked, over time*: each question with its three headlines. **Ask Jason something** starts a new question with the name already filled in. |
+| **Topics** | Suggested when saved (Startup, Travel, Food, Life…), always changeable. Places sit underneath as a quiet line, not a tab. |
+| **Topic** | Every conversation about it, across people. With two or more: *Different people, different views. Each stays in their own words.* Jason's "Hire more slowly than you think you need to" and Maya's "Hire faster than feels comfortable" stay side by side, attributed and never merged into a consensus. |
+| **Search** | *Search people, questions or things.* Matches names, questions, things, their context, topics and places, with gentle word matching (*hiring* finds *hire*). Results are grouped **People**, **Questions**, **Things**, and every thing shows who said it and what was asked. When a thing matched on its context, that sentence is shown so you can see why. Opening one scrolls to it and highlights it briefly. |
+| **Saved detail** | The person (links to their page), date, topic (links to the topic), place, the question and the three things. **Keep close** bookmarks it; there's no separate Favorites tab. |
+| **Saved** | After saving: *Filed under Startup · Change*, a small sheet with topic suggestions and a *Where* field. |
+
+The empty Library says *Your Library grows one conversation at a time.* and *Ask someone something worth remembering.*, with **Ask for 3** and a few example questions.
+
+Places are metadata only: they come from what the speaker actually said (a place the transcript doesn't contain is dropped by the grounding check), or from what you type in.
+
+People are grouped by name (case and spacing ignored), so "Jason" in March and "jason" in May are the same person. The sample conversations are refreshed for existing users without touching anything they've edited, kept close or deleted.
 
 ## How the three are chosen
 
@@ -70,7 +92,7 @@ These rules are covered by tests in [`tests/`](tests). They include a check that
 ```bash
 npm install
 npm run dev          # http://localhost:5173 (also exposed on your LAN for phone testing)
-npm test             # grounding, samples and formatting tests
+npm test             # grounding, samples, library and formatting tests
 npm run build        # typecheck + production build
 ```
 
@@ -98,15 +120,17 @@ server/
   distill.ts           Claude call: structured output, then grounding
   api.ts               GET /api/health, POST /api/distill (Node middleware, mounted in Vite)
 src/
-  App.tsx              Routes: / · /library · /library/:id · /you · /ask
+  App.tsx              Routes: / · /library · /library/people/:key · /library/topics/:key · /library/:id · /you · /ask
   styles/              tokens.css (color, type, space, motion), base.css, transitions.css
   components/          Mark (the three-stroke motif), ListeningVisual (the three listening forms), Orb,
-                       ThingList, ThingsEditor, SavedCard, AudioPlayer, Sheet, BottomNav, Avatar, Button, Toggle, Icon
+                       ThingsEditorial, ThingList, ThingsEditor, SavedCard, AudioPlayer, Sheet, BottomNav, Avatar, Button, Toggle, Icon
+    library/           Library rows (conversation, person, topic, thing) and search highlighting
   screens/
-    HomeScreen, LibraryScreen, DetailScreen, YouScreen
+    HomeScreen, LibraryScreen, PersonScreen, TopicScreen, DetailScreen, YouScreen
     capture/           CaptureFlow (the state machine) and one component per step
   lib/
     store.tsx          Saved conversations and settings (localStorage)
+    library.ts         People, topics and places derived from conversations, and Library search
     samples.ts         Sample conversations: realistic, messy transcripts with grounded things
     audio/             useRecorder (record, pause, resume), voice.ts (three voice bands with adaptive
                        noise floors), useSpeechRecognition, audioStore (IndexedDB)
@@ -126,4 +150,4 @@ Everything stays on the device for now: saved conversations in `localStorage`, r
 
 ## Deliberately not built yet
 
-Social features, sharing, public profiles, discovery, feeds, followers, likes, comments, messaging, maps, restaurant APIs, recommendations and gamification. The data model (`Capture`: question, person, topic, things with quotes) is shaped so that people, topics, places, collections and sync can be added on top of it later.
+Social features, public profiles, discovery, feeds, followers, likes, comments, messaging, maps, restaurant APIs, recommendations, AI summaries across people, and gamification. Sharing is a basic share sheet only. People, topics and places are derived from saved conversations rather than stored separately, so collections, photos and sync can be added on top later without migrating anything.

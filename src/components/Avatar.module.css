@@ -9,6 +9,11 @@
   line-height: 1;
 }
 
+.xs {
+  width: 20px;
+  height: 20px;
+  font-size: 0.6875rem;
+}
 .sm {
   width: 28px;
   height: 28px;
@@ -23,6 +28,11 @@
   width: 56px;
   height: 56px;
   font-size: 1.5rem;
+}
+.xl {
+  width: 72px;
+  height: 72px;
+  font-size: 2rem;
 }
 
 .ember {
