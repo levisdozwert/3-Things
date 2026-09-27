@@ -9,13 +9,15 @@ interface SentStepProps {
   question: string;
   person: string;
   copied: boolean;
+  /** Shown when this browser couldn't share or copy: the link, to copy by hand. */
+  link?: string;
   onAskSomeoneElse: () => void;
   onDone: () => void;
 }
 
 /** It's on its way. Nothing to wait on here: their 3 will come back to the Library. */
-export function SentStep({ id, question, person, copied, onAskSomeoneElse, onDone }: SentStepProps) {
-  const title = copied ? "Link copied" : person ? `Sent to ${person}` : "Question shared";
+export function SentStep({ id, question, person, copied, link, onAskSomeoneElse, onDone }: SentStepProps) {
+  const title = link ? "Your question is ready" : copied ? "Link copied" : person ? `Sent to ${person}` : "Question shared";
 
   return (
     <>
@@ -32,6 +34,12 @@ export function SentStep({ id, question, person, copied, onAskSomeoneElse, onDon
 
         <div className={`${styles.details} ${flow.enterLate}`}>
           {copied && <p className={styles.line}>Paste it wherever you talk to {person || "people"}.</p>}
+          {link && (
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Copy this link and send it to {person || "anyone you’d like to ask"}</span>
+              <input className={styles.linkBox} value={link} readOnly onFocus={(e) => e.target.select()} />
+            </label>
+          )}
           <p className={styles.line}>
             {person
               ? `You’ll see ${person}’s 3 here once they’ve reviewed and sent them. Links don’t expire, so there’s no rush.`

@@ -93,7 +93,7 @@ export function CaptureFlow() {
   const [prepared, setPrepared] = useState<Prepared | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareProblem, setShareProblem] = useState<string | null>(null);
-  const [sentAs, setSentAs] = useState<{ id: string; person: string; copied: boolean } | null>(null);
+  const [sentAs, setSentAs] = useState<{ id: string; person: string; copied: boolean; link?: string } | null>(null);
   const [askMode, setAskMode] = useState<"voice" | "type">(params.get("type") ? "type" : "voice");
   const [question, setQuestion] = useState(initialQuestion);
   // "Ask Jason something": start with Jason already chosen.
@@ -471,10 +471,8 @@ export function CaptureFlow() {
       const invite = { asker: signedAs, question, link: answerLink(ready.id) };
       const result = how === "share" ? await shareInvite(invite) : await copyInvite(invite);
       if (result === "cancelled") return;
-      if (result === "failed") {
-        setShareProblem("Couldn’t open sharing or copy the link. Try again.");
-        return;
-      }
+      // No share sheet and no clipboard here (some embedded browsers): the question
+      // is ready all the same, so show the link to copy by hand.
       addOutgoing({
         id: ready.id,
         ownerKey: ready.ownerKey,
@@ -488,7 +486,12 @@ export function CaptureFlow() {
         answers: [],
         wantsAudio: settings.keepRecordings,
       });
-      setSentAs({ id: ready.id, person, copied: result === "copied" });
+      setSentAs({
+        id: ready.id,
+        person,
+        copied: result === "copied",
+        ...(result === "failed" ? { link: invite.link } : {}),
+      });
       go("sent");
     } catch {
       setShareProblem("Couldn’t prepare the question. Check your connection and try again.");
@@ -572,6 +575,7 @@ export function CaptureFlow() {
           question={question}
           person={sentAs.person}
           copied={sentAs.copied}
+          link={sentAs.link}
           onAskSomeoneElse={askSomeoneElse}
           onDone={leave}
         />

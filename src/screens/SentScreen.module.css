@@ -120,6 +120,7 @@
 .quietNote {
   font-size: var(--text-meta);
   color: var(--ink-3);
+  overflow-wrap: anywhere;
 }
 
 .section {

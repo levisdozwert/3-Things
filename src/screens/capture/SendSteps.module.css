@@ -202,3 +202,13 @@
     margin-top: 18px;
   }
 }
+
+.linkBox {
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--paper-sunken);
+  font-size: var(--text-small);
+  color: var(--ink);
+}

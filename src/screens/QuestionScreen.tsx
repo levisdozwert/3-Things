@@ -56,6 +56,8 @@ export function QuestionScreen() {
     if (result === "shared" || result === "copied") {
       updateOutgoing(question.id, { remindedAt: new Date().toISOString() });
       setFeedback(result === "copied" ? "Reminder copied" : "Reminder sent");
+    } else if (result === "failed") {
+      setFeedback(`This browser can’t share. Send the link yourself: ${invite.link}`);
     }
   };
 
@@ -105,7 +107,11 @@ export function QuestionScreen() {
             <button
               type="button"
               className={styles.link}
-              onClick={async () => setFeedback((await copyInvite(invite, { linkOnly: true })) === "copied" ? "Link copied" : "Couldn’t copy")}
+              onClick={async () =>
+                setFeedback(
+                  (await copyInvite(invite, { linkOnly: true })) === "copied" ? "Link copied" : `Copy it from here: ${invite.link}`,
+                )
+              }
             >
               Copy link
             </button>
